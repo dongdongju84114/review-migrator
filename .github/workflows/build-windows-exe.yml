@@ -26,29 +26,14 @@ jobs:
       - name: Install test dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e ".[test]"
+          python -m pip install -e ".[test,windows-build]"
 
       - name: Run tests
         run: python -m pytest
 
       - name: Build Windows EXE
-        shell: powershell
-        run: |
-          New-Item -ItemType Directory -Force -Path build | Out-Null
-          powershell -ExecutionPolicy Bypass -File scripts/build_windows_exe.ps1 2>&1 | Tee-Object -FilePath build/windows-build.log
-          if ($LASTEXITCODE -ne 0) {
-            $tail = Get-Content build/windows-build.log -Tail 40 | Out-String
-            $tail = $tail.Replace("%", "%25").Replace("`r", "%0D").Replace("`n", "%0A")
-            Write-Host "::error title=Windows EXE build failed::$tail"
-            exit $LASTEXITCODE
-          }
-
-      - name: Upload Windows build logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-build-logs
-          path: build/*.log
+        shell: cmd
+        run: python -m PyInstaller --noconfirm --clean --onefile --windowed --name ReviewMigratorGUI --collect-submodules openpyxl --collect-submodules pandas --collect-submodules pydantic --collect-submodules dotenv --hidden-import tkinter tools/windows_gui_launcher.py
 
       - name: Smoke test built EXE
         shell: powershell
