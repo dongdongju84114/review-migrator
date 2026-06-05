@@ -32,61 +32,8 @@ jobs:
         run: python -m pytest
 
       - name: Build Windows EXE
-        shell: powershell
-        run: |
-          $ErrorActionPreference = "Continue"
-          if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue) {
-            $PSNativeCommandUseErrorActionPreference = $false
-          }
-          New-Item -ItemType Directory -Force -Path build | Out-Null
-          Set-Content -Path build\workflow_marker.txt -Value "Build step started"
-          $pyinstallerArgs = @(
-            "-m", "PyInstaller",
-            "--noconfirm",
-            "--clean",
-            "--onefile",
-            "--windowed",
-            "--name", "ReviewMigratorGUI",
-            "--collect-submodules", "openpyxl",
-            "--collect-submodules", "pandas",
-            "--collect-submodules", "pydantic",
-            "--collect-submodules", "dotenv",
-            "--hidden-import", "tkinter",
-            "tools/windows_gui_launcher.py"
-          )
-          python @pyinstallerArgs *> build\pyinstaller_full.log
-          $exitCode = $LASTEXITCODE
-          if ($null -eq $exitCode) {
-            $exitCode = 1
-          }
-          Set-Content -Path build\pyinstaller_exit_code.txt -Value $exitCode
-          if ($exitCode -ne 0) {
-            Get-Content build\pyinstaller_full.log -Tail 80
-          }
-          exit 0
-
-      - name: Upload Windows build logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-build-logs
-          path: build/**
-          if-no-files-found: ignore
-
-      - name: Fail if Windows build failed
-        shell: powershell
-        run: |
-          if (-not (Test-Path build\pyinstaller_exit_code.txt)) {
-            Write-Host "::error title=Windows build did not start::build\pyinstaller_exit_code.txt was not created"
-            exit 1
-          }
-          $exitCode = (Get-Content build\pyinstaller_exit_code.txt).Trim()
-          if ($exitCode -ne "0") {
-            $tail = Get-Content build\pyinstaller_full.log -Tail 40 | Out-String
-            $tail = $tail.Replace("%", "%25").Replace("`r", "%0D").Replace("`n", "%0A")
-            Write-Host "::error title=PyInstaller failed::$tail"
-            exit [int]$exitCode
-          }
+        shell: cmd
+        run: python -m PyInstaller --noconfirm --clean --onefile --windowed --name ReviewMigratorGUI --collect-submodules openpyxl --collect-submodules pandas --collect-submodules pydantic --collect-submodules dotenv --hidden-import tkinter tools/windows_gui_launcher.py
 
       - name: Upload Windows EXE
         uses: actions/upload-artifact@v4
