@@ -6,6 +6,7 @@ on:
     paths:
       - "review_migrator/**"
       - "tools/**"
+      - "tests/**"
       - "scripts/build_windows_exe.ps1"
       - "pyproject.toml"
       - ".github/workflows/build-windows-exe.yml"
