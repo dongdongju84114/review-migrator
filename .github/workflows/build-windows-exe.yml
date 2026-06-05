@@ -33,7 +33,29 @@ jobs:
 
       - name: Build Windows EXE
         shell: cmd
-        run: python -m PyInstaller --noconfirm --clean --onefile --windowed --name ReviewMigratorGUI --collect-submodules openpyxl --collect-submodules pandas --collect-submodules pydantic --collect-submodules dotenv --hidden-import tkinter tools/windows_gui_launcher.py
+        run: |
+          if not exist build mkdir build
+          python -m PyInstaller --noconfirm --clean --onefile --windowed --name ReviewMigratorGUI --collect-submodules openpyxl --collect-submodules pandas --collect-submodules pydantic --collect-submodules dotenv --hidden-import tkinter tools/windows_gui_launcher.py > build\pyinstaller.log 2>&1
+          echo %ERRORLEVEL%> build\pyinstaller_exit_code.txt
+          exit /b 0
+
+      - name: Upload Windows build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build-logs
+          path: build/*
+
+      - name: Fail if Windows build failed
+        shell: powershell
+        run: |
+          $exitCode = (Get-Content build\pyinstaller_exit_code.txt).Trim()
+          if ($exitCode -ne "0") {
+            $tail = Get-Content build\pyinstaller.log -Tail 40 | Out-String
+            $tail = $tail.Replace("%", "%25").Replace("`r", "%0D").Replace("`n", "%0A")
+            Write-Host "::error title=PyInstaller failed::$tail"
+            exit [int]$exitCode
+          }
 
       - name: Smoke test built EXE
         shell: powershell
