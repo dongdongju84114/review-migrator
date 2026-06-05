@@ -12,7 +12,7 @@ on:
 
 jobs:
   build-windows-exe:
-    runs-on: windows-latest
+    runs-on: windows-2022
 
     steps:
       - name: Checkout
@@ -34,7 +34,12 @@ jobs:
       - name: Build Windows EXE
         shell: powershell
         run: |
+          $ErrorActionPreference = "Continue"
+          if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue) {
+            $PSNativeCommandUseErrorActionPreference = $false
+          }
           New-Item -ItemType Directory -Force -Path build | Out-Null
+          Set-Content -Path build\workflow_marker.txt -Value "Build step started"
           $pyinstallerArgs = @(
             "-m", "PyInstaller",
             "--noconfirm",
@@ -49,19 +54,14 @@ jobs:
             "--hidden-import", "tkinter",
             "tools/windows_gui_launcher.py"
           )
-          try {
-            $process = Start-Process `
-              -FilePath python `
-              -ArgumentList $pyinstallerArgs `
-              -RedirectStandardOutput build\pyinstaller_stdout.log `
-              -RedirectStandardError build\pyinstaller_stderr.log `
-              -NoNewWindow `
-              -Wait `
-              -PassThru
-            Set-Content -Path build\pyinstaller_exit_code.txt -Value $process.ExitCode
-          } catch {
-            $_ | Out-File -FilePath build\pyinstaller_stderr.log -Encoding utf8
-            Set-Content -Path build\pyinstaller_exit_code.txt -Value 1
+          python @pyinstallerArgs *> build\pyinstaller_full.log
+          $exitCode = $LASTEXITCODE
+          if ($null -eq $exitCode) {
+            $exitCode = 1
+          }
+          Set-Content -Path build\pyinstaller_exit_code.txt -Value $exitCode
+          if ($exitCode -ne 0) {
+            Get-Content build\pyinstaller_full.log -Tail 80
           }
           exit 0
 
@@ -70,25 +70,30 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-build-logs
-          path: build/*
+          path: build/**
+          if-no-files-found: ignore
 
       - name: Fail if Windows build failed
         shell: powershell
         run: |
+          if (-not (Test-Path build\pyinstaller_exit_code.txt)) {
+            Write-Host "::error title=Windows build did not start::build\pyinstaller_exit_code.txt was not created"
+            exit 1
+          }
           $exitCode = (Get-Content build\pyinstaller_exit_code.txt).Trim()
           if ($exitCode -ne "0") {
-            $tail = Get-Content build\pyinstaller_stderr.log -Tail 40 | Out-String
+            $tail = Get-Content build\pyinstaller_full.log -Tail 40 | Out-String
             $tail = $tail.Replace("%", "%25").Replace("`r", "%0D").Replace("`n", "%0A")
             Write-Host "::error title=PyInstaller failed::$tail"
             exit [int]$exitCode
           }
-
-      - name: Smoke test built EXE
-        shell: powershell
-        run: .\dist\ReviewMigratorGUI.exe --smoke-test
 
       - name: Upload Windows EXE
         uses: actions/upload-artifact@v4
         with:
           name: ReviewMigratorGUI-windows
           path: dist/ReviewMigratorGUI.exe
+
+      - name: Smoke test built EXE
+        shell: powershell
+        run: .\dist\ReviewMigratorGUI.exe --smoke-test
