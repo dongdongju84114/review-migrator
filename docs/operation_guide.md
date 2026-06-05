@@ -192,7 +192,7 @@ python -m review_migrator check-crema-permissions \
 - Review API 리뷰 생성 권한: `POST /v1/reviews`
 - Review API 리뷰 수정 권한: `PATCH /v1/reviews`
 
-권한 추가 후에는 새 access token을 발급하거나 `.env`의 `CREMA_ACCESS_TOKEN`을 갱신하고, 같은 권한 확인 명령을 다시 실행한다.
+권한 추가 후에는 새 access token을 발급하거나 `.env`의 `CREMA_ACCESS_TOKEN`을 갱신하고, 같은 권한 확인 명령을 다시 실행한다. 실행 중 access token이 만료되어 401 응답을 받으면 도구가 `CREMA_APP_ID`와 `CREMA_SECRET`으로 새 토큰을 발급하고 `.env`의 `CREMA_ACCESS_TOKEN=` 줄을 자동 갱신한다.
 
 실제 등록:
 

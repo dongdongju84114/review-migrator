@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -28,11 +29,13 @@ class TokenProvider:
         secret: str | None = None,
         access_token: str | None = None,
         session: Any | None = None,
+        on_token_refresh: Callable[[str], None] | None = None,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.app_id = app_id
         self.secret = secret
         self.session = session
+        self.on_token_refresh = on_token_refresh
         self.token = OAuthToken(access_token=access_token) if access_token else None
         self.refresh_count = 0
 
@@ -64,6 +67,8 @@ class TokenProvider:
             expires_at = datetime.fromtimestamp(int(created_at), tz=timezone.utc) + timedelta(seconds=int(expires_in))
         self.token = OAuthToken(access_token=body["access_token"], expires_at=expires_at)
         self.refresh_count += 1
+        if self.on_token_refresh:
+            self.on_token_refresh(self.token.access_token)
         return self.token.access_token
 
 

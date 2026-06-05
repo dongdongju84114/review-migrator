@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Callable
 
 from review_migrator.cafe24.admin import Cafe24AdminClient, Cafe24AdminSettings
-from review_migrator.config import Settings, load_env_file
+from review_migrator.config import Settings, crema_token_refresh_callback, load_env_file
 from review_migrator.crema.auth import TokenProvider
 from review_migrator.crema.client import CremaClient
 from review_migrator.crema.errors import error_response_body_text, error_status_code
@@ -374,6 +374,7 @@ def _upload_payloads(
         app_id=settings.crema_app_id,
         secret=settings.crema_secret,
         access_token=settings.crema_access_token,
+        on_token_refresh=crema_token_refresh_callback(options.env_file),
     )
     client = CremaClient(base_url=settings.crema_api_base_url, token_provider=provider)
     service = ReviewService(client)
@@ -430,6 +431,7 @@ def _load_crema_products_for_mapping(options: RunAllOptions) -> list:
         app_id=settings.crema_app_id,
         secret=settings.crema_secret,
         access_token=settings.crema_access_token,
+        on_token_refresh=crema_token_refresh_callback(options.env_file),
     )
     client = CremaClient(base_url=settings.crema_api_base_url, token_provider=provider)
     from review_migrator.crema.products import ProductService
@@ -447,6 +449,7 @@ def _load_crema_products_for_marketplus_resolution(options: RunAllOptions) -> li
         app_id=settings.crema_app_id,
         secret=settings.crema_secret,
         access_token=settings.crema_access_token,
+        on_token_refresh=crema_token_refresh_callback(options.env_file),
     )
     client = CremaClient(base_url=settings.crema_api_base_url, token_provider=provider)
     return fetch_crema_products(ProductService(client))
@@ -464,6 +467,7 @@ def _check_crema_permissions(
         app_id=settings.crema_app_id,
         secret=settings.crema_secret,
         access_token=settings.crema_access_token,
+        on_token_refresh=crema_token_refresh_callback(options.env_file),
     )
     client = CremaClient(base_url=settings.crema_api_base_url, token_provider=provider)
     return run_crema_permission_checks(

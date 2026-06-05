@@ -49,6 +49,8 @@ python -m review_migrator check-crema-permissions \
 
 `크리마 상품 조회 권한`이 실패하면 크리마 관리자/API 앱에 Product API 상품 조회 권한(`GET /v1/products`)을 추가하고 토큰을 갱신한 뒤 다시 확인합니다. 실제 등록에는 Review API 조회/생성/수정 권한(`GET/POST/PATCH /v1/reviews`)도 필요합니다.
 
+실행 중 `CREMA_ACCESS_TOKEN`이 만료되어 401 응답을 받으면 `CREMA_APP_ID`와 `CREMA_SECRET`으로 새 토큰을 발급하고 `.env`의 `CREMA_ACCESS_TOKEN=` 줄을 자동 갱신합니다.
+
 ```bash
 python -m review_migrator run-all \
   --input data/naver_reviews.xlsx \

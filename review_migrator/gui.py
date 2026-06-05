@@ -8,7 +8,7 @@ from pathlib import Path
 from tkinter import BooleanVar, StringVar, Tk, filedialog, messagebox
 from tkinter import ttk
 
-from review_migrator.config import Settings, load_env_file
+from review_migrator.config import Settings, crema_token_refresh_callback, load_env_file
 from review_migrator.crema.auth import TokenProvider
 from review_migrator.crema.client import CremaClient
 from review_migrator.crema.permissions import (
@@ -275,13 +275,15 @@ class ReviewMigratorGui:
             output_path = run_dir / "crema_permission_checks.csv"
 
             self.log_queue.put(".env에서 크리마 인증 정보를 읽습니다.")
-            load_env_file(path_from_text(self.env_file.get(), default_env_file()))
+            env_file = path_from_text(self.env_file.get(), default_env_file())
+            load_env_file(env_file)
             settings = Settings.from_env()
             provider = TokenProvider(
                 base_url=settings.crema_api_base_url,
                 app_id=settings.crema_app_id,
                 secret=settings.crema_secret,
                 access_token=settings.crema_access_token,
+                on_token_refresh=crema_token_refresh_callback(env_file),
             )
             client = CremaClient(base_url=settings.crema_api_base_url, token_provider=provider)
             checks = run_crema_permission_checks(

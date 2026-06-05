@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 from review_migrator.cafe24.admin import Cafe24AdminClient, Cafe24AdminSettings
-from review_migrator.config import Settings, load_env_file
+from review_migrator.config import Settings, crema_token_refresh_callback, load_env_file
 from review_migrator.crema.auth import TokenProvider
 from review_migrator.crema.client import CremaClient
 from review_migrator.crema.errors import error_response_body_text, error_status_code
@@ -57,12 +57,13 @@ def _mapped_from_files(input_path: str | Path, mapping_path: str | Path):
     return reviews, apply_product_mapping(reviews, mappings)
 
 
-def _crema_review_service(settings: Settings) -> ReviewService:
+def _crema_review_service(settings: Settings, env_file: str | Path) -> ReviewService:
     provider = TokenProvider(
         base_url=settings.crema_api_base_url,
         app_id=settings.crema_app_id,
         secret=settings.crema_secret,
         access_token=settings.crema_access_token,
+        on_token_refresh=crema_token_refresh_callback(env_file),
     )
     client = CremaClient(base_url=settings.crema_api_base_url, token_provider=provider)
     return ReviewService(client)
@@ -180,7 +181,7 @@ def command_upload_crema(args: argparse.Namespace) -> int:
         registry.close()
         return 0
 
-    service = _crema_review_service(settings)
+    service = _crema_review_service(settings, args.env_file)
     responses = []
     failed = []
     for payload in payloads:
@@ -213,7 +214,7 @@ def command_verify_crema(args: argparse.Namespace) -> int:
     load_env_file(args.env_file)
     settings = Settings.from_env()
     payloads = load_payloads(args.payload)
-    service = _crema_review_service(settings)
+    service = _crema_review_service(settings, args.env_file)
     report = verify_payloads(payloads=payloads, get_review_by_code=service.get_by_code, run_id=args.run_id)
     write_report(args.output, report)
     markdown_output = Path(args.output).with_suffix(".md")
@@ -230,6 +231,7 @@ def command_check_crema_permissions(args: argparse.Namespace) -> int:
         app_id=settings.crema_app_id,
         secret=settings.crema_secret,
         access_token=settings.crema_access_token,
+        on_token_refresh=crema_token_refresh_callback(args.env_file),
     )
     client = CremaClient(base_url=settings.crema_api_base_url, token_provider=provider)
     checks = run_crema_permission_checks(
@@ -340,6 +342,7 @@ def command_build_product_mapping(args: argparse.Namespace) -> int:
                 app_id=settings.crema_app_id,
                 secret=settings.crema_secret,
                 access_token=settings.crema_access_token,
+                on_token_refresh=crema_token_refresh_callback(args.env_file),
             )
             client = CremaClient(base_url=settings.crema_api_base_url, token_provider=provider)
             try:
@@ -376,6 +379,7 @@ def command_build_product_mapping(args: argparse.Namespace) -> int:
             app_id=settings.crema_app_id,
             secret=settings.crema_secret,
             access_token=settings.crema_access_token,
+            on_token_refresh=crema_token_refresh_callback(args.env_file),
         )
         client = CremaClient(base_url=settings.crema_api_base_url, token_provider=provider)
 

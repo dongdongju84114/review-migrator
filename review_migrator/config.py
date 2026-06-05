@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -15,6 +16,39 @@ def load_env_file(path: str | Path = ".env") -> None:
             continue
         key, value = stripped.split("=", 1)
         os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+
+
+def update_env_file_value(path: str | Path, key: str, value: str) -> None:
+    env_path = Path(path)
+    lines = env_path.read_text(encoding="utf-8").splitlines() if env_path.exists() else []
+    output_lines: list[str] = []
+    updated = False
+
+    for line in lines:
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in line:
+            output_lines.append(line)
+            continue
+        current_key = line.split("=", 1)[0].strip()
+        if current_key == key:
+            output_lines.append(f"{key}={value}")
+            updated = True
+        else:
+            output_lines.append(line)
+
+    if not updated:
+        output_lines.append(f"{key}={value}")
+
+    env_path.parent.mkdir(parents=True, exist_ok=True)
+    env_path.write_text("\n".join(output_lines) + "\n", encoding="utf-8")
+    os.environ[key] = value
+
+
+def crema_token_refresh_callback(env_file: str | Path) -> Callable[[str], None]:
+    def persist_token(access_token: str) -> None:
+        update_env_file_value(env_file, "CREMA_ACCESS_TOKEN", access_token)
+
+    return persist_token
 
 
 @dataclass(frozen=True)
@@ -38,4 +72,3 @@ class Settings:
     @property
     def is_production(self) -> bool:
         return self.env == "production"
-

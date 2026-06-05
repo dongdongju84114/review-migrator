@@ -32,12 +32,14 @@ class FakeSession:
 
 def test_client_refreshes_token_after_401():
     token_session = FakeSession([FakeResponse(200, {"access_token": "fresh"})])
+    refreshed_tokens = []
     provider = TokenProvider(
         base_url="https://api.cre.ma",
         app_id="app",
         secret="secret",
         access_token="stale",
         session=token_session,
+        on_token_refresh=refreshed_tokens.append,
     )
     api_session = FakeSession([FakeResponse(401), FakeResponse(200, {"ok": True})])
     client = CremaClient(
@@ -49,6 +51,7 @@ def test_client_refreshes_token_after_401():
 
     assert client.get("/v1/reviews", params={"code": "x"}) == {"ok": True}
     assert provider.refresh_count == 1
+    assert refreshed_tokens == ["fresh"]
 
 
 def test_client_retries_rate_limit_response():
