@@ -59,6 +59,32 @@ def test_client_retries_rate_limit_response():
     assert len(api_session.calls) == 2
 
 
+def test_client_encodes_repeated_form_data_as_bytes():
+    provider = TokenProvider(base_url="https://api.cre.ma", access_token="token")
+    api_session = FakeSession([FakeResponse(200, {"ok": True})])
+    client = CremaClient(
+        base_url="https://api.cre.ma",
+        token_provider=provider,
+        session=api_session,
+        retry_sleep=0,
+    )
+
+    assert client.post(
+        "/v1/reviews",
+        data=[
+            ("code", "review-1"),
+            ("image_urls[]", "https://example.com/1.jpg"),
+            ("image_urls[]", "https://example.com/2.jpg"),
+        ],
+    ) == {"ok": True}
+
+    _, _, kwargs = api_session.calls[0]
+    assert isinstance(kwargs["data"], bytes)
+    assert b"access_token=token" in kwargs["data"]
+    assert kwargs["data"].count(b"image_urls%5B%5D=") == 2
+    assert kwargs["headers"]["Content-Type"] == "application/x-www-form-urlencoded;charset=UTF-8"
+
+
 def test_error_response_body_text_sanitizes_sensitive_keys():
     error = CremaHTTPError(
         400,

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import time
 from typing import Any
+from urllib.parse import urlencode
 
 from .auth import TokenProvider
 from .errors import CremaConfigurationError, CremaHTTPError
@@ -36,12 +37,14 @@ class CremaClient:
         refreshed_after_401 = False
         while True:
             token = self.token_provider.get_token()
+            form_data, headers = self._data_with_token(data, token)
             response = self.session.request(
                 method,
                 f"{self.base_url}{path}",
                 params=self._params_with_token(params, token),
-                data=self._data_with_token(data, token),
+                data=form_data,
                 json=json,
+                headers=headers,
             )
             if response.status_code == 401 and not refreshed_after_401:
                 self.token_provider.refresh_token()
@@ -78,12 +81,13 @@ class CremaClient:
     def _data_with_token(
         data: dict[str, Any] | list[tuple[str, Any]] | None,
         token: str,
-    ) -> dict[str, Any] | list[tuple[str, Any]]:
+    ) -> tuple[dict[str, Any] | bytes, dict[str, str] | None]:
         if isinstance(data, list):
-            return [("access_token", token), *data]
+            encoded = urlencode([("access_token", token), *data]).encode("utf-8")
+            return encoded, {"Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"}
         merged = dict(data or {})
         merged.setdefault("access_token", token)
-        return merged
+        return merged, None
 
     @staticmethod
     def _response_body(response: Any) -> Any:
