@@ -1,0 +1,46 @@
+name: Build Windows EXE
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "review_migrator/**"
+      - "tools/**"
+      - "scripts/build_windows_exe.ps1"
+      - "pyproject.toml"
+      - ".github/workflows/build-windows-exe.yml"
+
+jobs:
+  build-windows-exe:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[test]"
+
+      - name: Run tests
+        run: python -m pytest
+
+      - name: Build Windows EXE
+        shell: powershell
+        run: powershell -ExecutionPolicy Bypass -File scripts/build_windows_exe.ps1
+
+      - name: Smoke test built EXE
+        shell: powershell
+        run: .\dist\ReviewMigratorGUI.exe --smoke-test
+
+      - name: Upload Windows EXE
+        uses: actions/upload-artifact@v4
+        with:
+          name: ReviewMigratorGUI-windows
+          path: dist/ReviewMigratorGUI.exe

@@ -1,0 +1,30 @@
+[project]
+name = "review-migrator"
+version = "0.1.0"
+description = "Harness-based Naver SmartStore review to CREMA Review migration tools."
+requires-python = ">=3.11"
+dependencies = [
+    "pandas>=2.2",
+    "openpyxl>=3.1",
+    "pydantic>=2.7",
+    "httpx>=0.27",
+    "tenacity>=8.2",
+    "typer>=0.12",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=8.0",
+    "respx>=0.21",
+]
+windows-build = [
+    "pyinstaller>=6.0",
+]
+
+[project.scripts]
+review-migrator = "review_migrator.cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

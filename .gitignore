@@ -1,0 +1,16 @@
+.env
+.DS_Store
+.venv/
+.venv-build-windows/
+__pycache__/
+*.pyc
+.pytest_cache/
+build/
+dist/
+*.spec
+config/*.csv
+outputs/
+reports/
+work/
+operator_runs/
+out/
