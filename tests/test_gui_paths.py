@@ -10,7 +10,7 @@ def test_frozen_app_uses_documents_for_output_dir(monkeypatch, tmp_path):
     exe_path = tmp_path / "ReviewMigratorGUI.exe"
     monkeypatch.setattr(sys, "frozen", True, raising=False)
     monkeypatch.setattr(sys, "executable", str(exe_path))
-    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setattr(gui_paths.Path, "home", lambda: tmp_path)
     monkeypatch.delenv("REVIEW_MIGRATOR_OUTPUT_DIR", raising=False)
 
     assert gui_paths.default_output_dir() == tmp_path / "Documents" / "ReviewMigrator" / "operator_runs"
