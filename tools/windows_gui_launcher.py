@@ -10,8 +10,10 @@ def smoke_test() -> None:
     if sys.platform != "win32":
         return
 
+    import paramiko
     from tkinter import Tk
 
+    _ = paramiko.Transport
     root = Tk()
     root.withdraw()
     ReviewMigratorGui(root)

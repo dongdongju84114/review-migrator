@@ -55,9 +55,6 @@ $PyInstallerArgs = @(
     "--collect-submodules", "pydantic",
     "--collect-submodules", "dotenv",
     "--collect-submodules", "paramiko",
-    "--collect-submodules", "cryptography",
-    "--collect-submodules", "bcrypt",
-    "--collect-submodules", "nacl",
     "--hidden-import", "tkinter",
     "tools\windows_gui_launcher.py"
 )
