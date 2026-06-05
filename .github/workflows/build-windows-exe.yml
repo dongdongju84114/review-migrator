@@ -35,6 +35,13 @@ jobs:
         shell: powershell
         run: powershell -ExecutionPolicy Bypass -File scripts/build_windows_exe.ps1
 
+      - name: Upload PyInstaller log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pyinstaller-log
+          path: build/pyinstaller.log
+
       - name: Smoke test built EXE
         shell: powershell
         run: .\dist\ReviewMigratorGUI.exe --smoke-test
