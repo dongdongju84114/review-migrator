@@ -49,8 +49,20 @@ jobs:
             "--hidden-import", "tkinter",
             "tools/windows_gui_launcher.py"
           )
-          & python @pyinstallerArgs > build\pyinstaller.log 2>&1
-          Set-Content -Path build\pyinstaller_exit_code.txt -Value $LASTEXITCODE
+          try {
+            $process = Start-Process `
+              -FilePath python `
+              -ArgumentList $pyinstallerArgs `
+              -RedirectStandardOutput build\pyinstaller_stdout.log `
+              -RedirectStandardError build\pyinstaller_stderr.log `
+              -NoNewWindow `
+              -Wait `
+              -PassThru
+            Set-Content -Path build\pyinstaller_exit_code.txt -Value $process.ExitCode
+          } catch {
+            $_ | Out-File -FilePath build\pyinstaller_stderr.log -Encoding utf8
+            Set-Content -Path build\pyinstaller_exit_code.txt -Value 1
+          }
           exit 0
 
       - name: Upload Windows build logs
@@ -65,7 +77,7 @@ jobs:
         run: |
           $exitCode = (Get-Content build\pyinstaller_exit_code.txt).Trim()
           if ($exitCode -ne "0") {
-            $tail = Get-Content build\pyinstaller.log -Tail 40 | Out-String
+            $tail = Get-Content build\pyinstaller_stderr.log -Tail 40 | Out-String
             $tail = $tail.Replace("%", "%25").Replace("`r", "%0D").Replace("`n", "%0A")
             Write-Host "::error title=PyInstaller failed::$tail"
             exit [int]$exitCode
