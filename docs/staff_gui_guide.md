@@ -75,3 +75,4 @@ EXE가 없고 `run_review_migrator_gui.bat` 파일을 받은 경우에는 `.bat`
 - `마켓플러스 CSV`의 `P000...` 상품코드는 카페24 상품코드입니다. `카페24 상품 CSV`를 같이 넣으면 도구가 카페24 `상품번호`로 바꿔 크리마 상품과 맞춥니다.
 - `downloaded_images` 폴더에는 네이버에서 다운로드한 이미지가 저장됩니다.
 - 네이버 이미지 URL은 크리마에 그대로 넣지 않습니다. 공개 저장소에 올린 뒤 그 공개 URL만 크리마 CSV/API에 들어갑니다.
+- 이미지가 크리마에 보이지 않으면 결과 폴더의 `image_public_url_checks.csv`와 `.env`의 `CAFE24_IMAGE_BASE_URL`을 담당자에게 확인 요청해주세요.

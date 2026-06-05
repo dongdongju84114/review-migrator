@@ -68,7 +68,13 @@ class CremaClient:
     def post(self, path: str, *, data: dict[str, Any] | list[tuple[str, Any]] | None = None) -> Any:
         return self.request("POST", path, data=data)
 
-    def patch(self, path: str, *, params: dict[str, Any] | None = None, data: dict[str, Any] | None = None) -> Any:
+    def patch(
+        self,
+        path: str,
+        *,
+        params: dict[str, Any] | None = None,
+        data: dict[str, Any] | list[tuple[str, Any]] | None = None,
+    ) -> Any:
         return self.request("PATCH", path, params=params, data=data)
 
     @staticmethod

@@ -79,6 +79,8 @@ CAFE24_FTP_PORT=8012
 - SFTP 계정이면 `CAFE24_UPLOAD_PROTOCOL=sftp`와 SFTP 포트를 함께 입력한다.
 - FTPS를 쓰는 계정이면 `CAFE24_UPLOAD_PROTOCOL=ftps` 또는 `CAFE24_FTP_USE_TLS=true`를 추가한다.
 
+`CAFE24_IMAGE_BASE_URL`은 FTP 호스트 주소가 아니라 실제 이미지가 브라우저에서 열리는 공개 주소여야 한다. Cafe24 이미지 CDN을 쓰는 경우 `https://ecimg.cafe24img.com/.../web/upload/review-images`처럼 파일명 앞까지의 base URL을 넣는다. 실제 등록 실행 때 도구가 업로드된 이미지 공개 URL을 확인하며, 접근 실패가 있으면 크리마 등록을 중단한다.
+
 ## 2. 표준화
 
 전체 과정을 한 번에 실행하려면 다음 명령을 쓴다.

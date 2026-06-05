@@ -28,6 +28,7 @@ from review_migrator.images.ftp_storage import (
     stage_or_upload_matches_to_ftp,
 )
 from review_migrator.images.matcher import match_images, write_image_matches
+from review_migrator.images.url_checker import check_public_image_urls, write_public_image_url_checks
 from review_migrator.mapping.auto_mapping import (
     build_auto_mapping,
     build_mapping_from_marketplus_csv,
@@ -87,6 +88,7 @@ class RunAllSummary:
     downloaded_image_count: int = 0
     ftp_image_planned_count: int = 0
     ftp_image_uploaded_count: int = 0
+    image_public_url_failed_count: int = 0
     review_required_image_count: int = 0
     payload_count: int = 0
     payload_error_count: int = 0
@@ -134,6 +136,7 @@ def run_all(options: RunAllOptions, log: LogFunc | None = None) -> RunAllSummary
         "image_review_required": output_dir / "image_matches_review_required.csv",
         "downloaded_images_dir": output_dir / "downloaded_images",
         "downloaded_image_manifest": output_dir / "downloaded_image_manifest.csv",
+        "image_public_url_checks": output_dir / "image_public_url_checks.csv",
         "crema_csv": output_dir / "crema_other_reviews_upload.csv",
         "payloads": output_dir / "crema_payloads.jsonl",
         "payload_issues": output_dir / "payload_issues.jsonl",
@@ -228,6 +231,7 @@ def run_all(options: RunAllOptions, log: LogFunc | None = None) -> RunAllSummary
     logger("3/6 이미지 파일을 준비합니다.")
     image_matches = {}
     downloaded_matches = []
+    public_url_checks = []
     image_source_count = sum(len(review.source_image_urls) for review in normalize_result.records)
     load_env_file(options.env_file)
     image_base_url = options.image_base_url
@@ -265,6 +269,25 @@ def run_all(options: RunAllOptions, log: LogFunc | None = None) -> RunAllSummary
                 )
                 if upload_to_ftp:
                     summary.ftp_image_uploaded_count = sum(1 for row in manifest_rows if row.get("status") == "uploaded")
+                    public_urls = [
+                        str(row.get("public_url"))
+                        for row in manifest_rows
+                        if row.get("status") == "uploaded" and row.get("public_url")
+                    ]
+                    if public_urls:
+                        logger("  - 업로드된 이미지 공개 URL을 확인합니다.")
+                        public_url_checks = check_public_image_urls(public_urls)
+                        failed_public_urls = {check.url: check for check in public_url_checks if not check.ok}
+                        summary.image_public_url_failed_count = len(failed_public_urls)
+                        if failed_public_urls:
+                            summary.blocking_messages.append(
+                                f"이미지 공개 URL 접근 실패 {len(failed_public_urls)}건: CAFE24_IMAGE_BASE_URL 확인 필요"
+                            )
+                            for row in manifest_rows:
+                                public_url = row.get("public_url")
+                                if public_url in failed_public_urls:
+                                    row["status"] = "public_url_failed"
+                                    row["warning"] = failed_public_urls[str(public_url)].error
                 else:
                     summary.ftp_image_planned_count = sum(1 for row in manifest_rows if row.get("status") == "planned")
             except Exception as error:
@@ -273,6 +296,7 @@ def run_all(options: RunAllOptions, log: LogFunc | None = None) -> RunAllSummary
             summary.blocking_messages.append("Cafe24 FTP 설정 누락: " + ", ".join(ftp_missing_settings))
 
         write_download_manifest(paths["downloaded_image_manifest"], manifest_rows)
+        write_public_image_url_checks(paths["image_public_url_checks"], public_url_checks)
         image_matches.update({match.idempotency_code: match for match in downloaded_matches})
         missing_public_url_count = sum(1 for row in manifest_rows if row.get("status") not in {"failed"} and not row.get("public_url"))
         if missing_public_url_count:
@@ -290,6 +314,8 @@ def run_all(options: RunAllOptions, log: LogFunc | None = None) -> RunAllSummary
         summary.review_required_image_count = len(review_required)
     else:
         write_image_matches(paths["image_review_required"], [])
+    if not paths["image_public_url_checks"].exists():
+        write_public_image_url_checks(paths["image_public_url_checks"], [])
     write_image_matches(paths["image_matches"], list(image_matches.values()))
     summary.auto_image_match_count = len(image_matches)
 
@@ -380,7 +406,13 @@ def _upload_payloads(
     summary.upload_failed_count = len(failed)
 
     if not failed:
-        report = verify_payloads(payloads=payloads, get_review_by_code=service.get_by_code, run_id=summary.run_id)
+        report = verify_payloads(
+            payloads=payloads,
+            get_review_by_code=service.get_by_code,
+            run_id=summary.run_id,
+            attempts=6,
+            sleep_seconds=5,
+        )
         write_report(paths["verification_html"], report)
         write_report(paths["verification_html"].with_suffix(".md"), report)
         summary.verification_failed_count = report.failed_count
@@ -508,6 +540,7 @@ def render_run_summary_markdown(summary: RunAllSummary) -> str:
         f"- 이미지 자동 매칭: {summary.auto_image_match_count}건",
         f"- Cafe24 FTP 업로드 예정 이미지: {summary.ftp_image_planned_count}건",
         f"- Cafe24 FTP 업로드 완료 이미지: {summary.ftp_image_uploaded_count}건",
+        f"- 이미지 공개 URL 실패: {summary.image_public_url_failed_count}건",
         f"- 이미지 확인 필요: {summary.review_required_image_count}건",
         f"- 크리마 payload: {summary.payload_count}건",
         *processing_lines,
@@ -559,6 +592,7 @@ def render_run_summary_html(summary: RunAllSummary) -> str:
     <dt>이미지 자동 매칭</dt><dd>{summary.auto_image_match_count}건</dd>
     <dt>Cafe24 FTP 업로드 예정</dt><dd>{summary.ftp_image_planned_count}건</dd>
     <dt>Cafe24 FTP 업로드 완료</dt><dd>{summary.ftp_image_uploaded_count}건</dd>
+    <dt>이미지 공개 URL 실패</dt><dd>{summary.image_public_url_failed_count}건</dd>
     <dt>이미지 확인 필요</dt><dd>{summary.review_required_image_count}건</dd>
     <dt>payload</dt><dd>{summary.payload_count}건</dd>
     {processing_rows}

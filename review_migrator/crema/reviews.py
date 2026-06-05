@@ -38,7 +38,7 @@ class ReviewService:
         return self.client.post("/v1/reviews", data=payload_to_form(payload))
 
     def update_by_code(self, payload: CremaReviewPayload) -> Any:
-        return self.client.patch("/v1/reviews", params={"code": payload.code}, data=dict(payload_to_form(payload)))
+        return self.client.patch("/v1/reviews", params={"code": payload.code}, data=payload_to_form(payload))
 
     def create_or_update(self, payload: CremaReviewPayload, duplicate_mode: str = "update") -> Any:
         existing = None
@@ -56,4 +56,3 @@ class ReviewService:
             raise RuntimeError(f"review already exists: {payload.code}")
         created = self.create(payload)
         return {"status": "created", "code": payload.code, "response": created}
-

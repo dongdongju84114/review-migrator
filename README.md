@@ -71,6 +71,8 @@ CAFE24_UPLOAD_PROTOCOL=sftp
 CAFE24_FTP_PORT=8012
 ```
 
+`CAFE24_IMAGE_BASE_URL`은 FTP 접속 호스트가 아니라 브라우저와 크리마 서버에서 실제로 열리는 공개 이미지 URL이어야 합니다. Cafe24 이미지 CDN을 쓰는 경우에는 `https://ecimg.cafe24img.com/.../web/upload/review-images`처럼 실제 이미지가 열리는 base URL을 넣습니다.
+
 자동 매핑은 크리마 상품 목록을 읽고 확실한 상품만 `enabled=true`로 둡니다. 애매한 상품은 `product_mapping_review_required.csv`에 남기고 실제 등록을 막습니다.
 
 매핑 CSV만 먼저 만들고 싶을 때:

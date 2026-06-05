@@ -28,7 +28,7 @@ class UrllibSession:
         url: str,
         *,
         params: dict[str, Any] | None = None,
-        data: dict[str, Any] | list[tuple[str, Any]] | None = None,
+        data: dict[str, Any] | list[tuple[str, Any]] | bytes | None = None,
         json: dict[str, Any] | None = None,
         headers: dict[str, str] | None = None,
         **_: Any,
@@ -39,6 +39,9 @@ class UrllibSession:
         if json is not None:
             body = json_module.dumps(json).encode("utf-8")
             request_headers.setdefault("Content-Type", "application/json;charset=UTF-8")
+        elif isinstance(data, bytes):
+            body = data
+            request_headers.setdefault("Content-Type", "application/x-www-form-urlencoded;charset=UTF-8")
         elif data is not None:
             body = urlencode(data).encode("utf-8")
             request_headers.setdefault("Content-Type", "application/x-www-form-urlencoded;charset=UTF-8")
