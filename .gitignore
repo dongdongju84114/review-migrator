@@ -1,4 +1,5 @@
 .env
+*/.env
 .DS_Store
 .venv/
 .venv-build-windows/
@@ -8,9 +9,12 @@ __pycache__/
 build/
 dist/
 *.spec
+*.zip
 config/*.csv
 outputs/
 reports/
 work/
 operator_runs/
 out/
+messenger_package/
+ReviewMigrator_windows_build_source/

@@ -18,7 +18,7 @@ Windows용 EXE는 Windows 빌드 PC에서 아래 명령으로 만든다.
 powershell -ExecutionPolicy Bypass -File scripts/build_windows_exe.ps1
 ```
 
-생성 결과는 `dist\ReviewMigratorGUI.exe`다. 이 EXE와 `.env`를 같은 폴더에 두고 운영 PC에 전달한다.
+생성 결과는 `dist\ReviewMigratorGUI.exe`다. 이 EXE와 `.env`를 같은 폴더에 두고 운영 PC에 전달한다. Windows EXE 실행 결과는 기본적으로 `내 문서\ReviewMigrator\operator_runs`에 저장된다.
 
 GitHub Actions를 쓸 수 있는 저장소라면 `Build Windows EXE` 워크플로를 수동 실행한다. 이 워크플로는 Windows 러너에서 테스트를 돌리고, EXE를 만든 뒤, 생성된 EXE를 `--smoke-test`로 실제 실행 확인한 다음 artifact로 업로드한다.
 
@@ -30,7 +30,7 @@ EXE가 없고 개발 폴더를 그대로 전달하는 경우에는 `run_review_m
 2. `마켓플러스 CSV`: 카페24 마켓플러스에서 네이버 스마트스토어로 필터해서 다운로드한 상품 CSV다.
 3. `카페24 상품 CSV`: 카페24 상품 전체 목록 CSV다. `상품코드`와 `상품번호` 컬럼이 있어야 한다.
 
-결과는 자동으로 `operator_runs` 폴더에 저장된다. `.env`와 이미지 공개 URL은 미리 준비된 기본 설정을 사용한다.
+결과는 자동으로 기본 결과 폴더에 저장된다. Windows EXE는 `내 문서\ReviewMigrator\operator_runs`, macOS/개발 폴더 실행은 실행 폴더의 `operator_runs`를 사용한다. `.env`와 이미지 공개 URL은 미리 준비된 기본 설정을 사용한다.
 
 먼저 `안전 검증 파일 만들기`를 누른다. 이 버튼은 크리마에 실제 등록하지 않는다.
 

@@ -33,7 +33,7 @@ jobs:
 
       - name: Build Windows EXE
         shell: cmd
-        run: python -m PyInstaller --noconfirm --clean --onefile --windowed --name ReviewMigratorGUI --collect-submodules openpyxl --collect-submodules pandas --collect-submodules pydantic --collect-submodules dotenv --hidden-import tkinter tools/windows_gui_launcher.py
+        run: python -m PyInstaller --noconfirm --clean --onefile --windowed --name ReviewMigratorGUI --collect-submodules openpyxl --collect-submodules pandas --collect-submodules pydantic --collect-submodules dotenv --collect-submodules paramiko --collect-submodules cryptography --collect-submodules bcrypt --collect-submodules nacl --hidden-import tkinter tools/windows_gui_launcher.py
 
       - name: Smoke test built EXE
         shell: powershell

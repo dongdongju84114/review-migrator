@@ -18,6 +18,7 @@ from review_migrator.crema.permissions import (
 )
 from review_migrator.crema.products import ProductService
 from review_migrator.crema.reviews import ReviewService
+from review_migrator.gui_paths import default_env_file, default_output_dir, path_from_text
 from review_migrator.pipeline import RunAllOptions, run_all
 
 
@@ -33,8 +34,8 @@ class ReviewMigratorGui:
         self.upload_ready = False
 
         self.naver_export_path = StringVar()
-        self.output_dir = StringVar(value=str(Path("operator_runs").resolve()))
-        self.env_file = StringVar(value=str(Path(".env").resolve()))
+        self.output_dir = StringVar(value=str(default_output_dir()))
+        self.env_file = StringVar(value=str(default_env_file()))
         self.crema_products_csv = StringVar()
         self.cafe24_products_csv = StringVar()
         self.approve_upload = BooleanVar(value=False)
@@ -71,7 +72,8 @@ class ReviewMigratorGui:
         self._file_row(form, "카페24 상품 CSV", self.cafe24_products_csv, self._choose_cafe24_products_csv, 2)
         helper = ttk.Label(
             form,
-            text="결과는 operator_runs 폴더에 저장됩니다. .env와 이미지 공개 URL은 기본 설정을 사용합니다.",
+            text=f"결과 저장 폴더: {self.output_dir.get()} / .env는 실행 파일 또는 프로젝트 폴더의 기본 설정을 사용합니다.",
+            wraplength=980,
         )
         helper.grid(row=3, column=1, sticky="w", padx=8, pady=(2, 10))
 
@@ -222,7 +224,7 @@ class ReviewMigratorGui:
             raise ValueError("마켓플러스 CSV를 선택해주세요.")
         if not self.cafe24_products_csv.get():
             raise ValueError("카페24 상품 CSV를 선택해주세요.")
-        output_base = Path(self.output_dir.get() or "operator_runs")
+        output_base = path_from_text(self.output_dir.get(), default_output_dir())
         return RunAllOptions(
             naver_export_path=Path(self.naver_export_path.get()),
             product_mapping_path=None,
@@ -230,7 +232,7 @@ class ReviewMigratorGui:
             image_base_url=None,
             image_public_dir=None,
             output_base_dir=output_base,
-            env_file=Path(self.env_file.get() or ".env"),
+            env_file=path_from_text(self.env_file.get(), default_env_file()),
             approve_upload=approve_upload,
             auto_build_mapping=True,
             crema_products_csv=Path(self.crema_products_csv.get()) if self.crema_products_csv.get() else None,
@@ -267,13 +269,13 @@ class ReviewMigratorGui:
 
     def _check_crema_permissions_thread(self) -> None:
         try:
-            output_base = Path(self.output_dir.get() or "operator_runs")
+            output_base = path_from_text(self.output_dir.get(), default_output_dir())
             run_dir = output_base / "crema_permissions"
             run_dir.mkdir(parents=True, exist_ok=True)
             output_path = run_dir / "crema_permission_checks.csv"
 
             self.log_queue.put(".env에서 크리마 인증 정보를 읽습니다.")
-            load_env_file(Path(self.env_file.get() or ".env"))
+            load_env_file(path_from_text(self.env_file.get(), default_env_file()))
             settings = Settings.from_env()
             provider = TokenProvider(
                 base_url=settings.crema_api_base_url,

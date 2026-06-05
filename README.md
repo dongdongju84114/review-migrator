@@ -21,7 +21,7 @@ Windows용 단독 EXE는 Windows PC에서 아래 명령으로 생성합니다.
 powershell -ExecutionPolicy Bypass -File scripts/build_windows_exe.ps1
 ```
 
-생성 결과는 `dist\ReviewMigratorGUI.exe`입니다. 이 EXE와 `.env`를 같은 폴더에 두고 운영 PC에 전달하면 Python 없이 실행할 수 있습니다.
+생성 결과는 `dist\ReviewMigratorGUI.exe`입니다. 이 EXE와 `.env`를 같은 폴더에 두고 운영 PC에 전달하면 Python 없이 실행할 수 있습니다. Windows EXE 실행 결과는 기본적으로 `내 문서\ReviewMigrator\operator_runs`에 저장됩니다.
 
 GitHub Actions를 쓸 수 있는 저장소라면 `Build Windows EXE` 워크플로를 수동 실행해도 됩니다. 이 워크플로는 Windows 러너에서 테스트를 돌리고, EXE를 만든 뒤, 생성된 EXE를 `--smoke-test`로 실제 실행 확인한 다음 artifact로 업로드합니다.
 
