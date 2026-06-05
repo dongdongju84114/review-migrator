@@ -33,14 +33,22 @@ jobs:
 
       - name: Build Windows EXE
         shell: powershell
-        run: powershell -ExecutionPolicy Bypass -File scripts/build_windows_exe.ps1
+        run: |
+          New-Item -ItemType Directory -Force -Path build | Out-Null
+          powershell -ExecutionPolicy Bypass -File scripts/build_windows_exe.ps1 2>&1 | Tee-Object -FilePath build/windows-build.log
+          if ($LASTEXITCODE -ne 0) {
+            $tail = Get-Content build/windows-build.log -Tail 40 | Out-String
+            $tail = $tail.Replace("%", "%25").Replace("`r", "%0D").Replace("`n", "%0A")
+            Write-Host "::error title=Windows EXE build failed::$tail"
+            exit $LASTEXITCODE
+          }
 
-      - name: Upload PyInstaller log
+      - name: Upload Windows build logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: pyinstaller-log
-          path: build/pyinstaller.log
+          name: windows-build-logs
+          path: build/*.log
 
       - name: Smoke test built EXE
         shell: powershell
