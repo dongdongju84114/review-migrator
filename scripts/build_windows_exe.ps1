@@ -54,7 +54,6 @@ $PyInstallerArgs = @(
     "--collect-submodules", "pandas",
     "--collect-submodules", "pydantic",
     "--collect-submodules", "dotenv",
-    "--collect-submodules", "paramiko",
     "--hidden-import", "tkinter",
     "tools\windows_gui_launcher.py"
 )
