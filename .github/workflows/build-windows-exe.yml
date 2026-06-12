@@ -47,12 +47,11 @@ jobs:
         run: |
           $packageRoot = "dist\ReviewMigratorGUI-windows"
           New-Item -ItemType Directory -Force -Path $packageRoot | Out-Null
-          Copy-Item "dist\ReviewMigratorGUI.exe" $packageRoot
-          Copy-Item "docs\staff_gui_guide.md" (Join-Path $packageRoot "경영지원팀용_리뷰_이전_도구_사용법.md")
-          New-Item -ItemType Directory -Force -Path (Join-Path $packageRoot "chrome_extensions") | Out-Null
-          Copy-Item "chrome_extensions\smartstore_review_image_collector" `
-            (Join-Path $packageRoot "chrome_extensions\smartstore_review_image_collector") `
-            -Recurse
+          $extensionRoot = Join-Path $packageRoot "chrome_extensions"
+          New-Item -ItemType Directory -Force -Path $extensionRoot | Out-Null
+          Copy-Item -Path "dist\ReviewMigratorGUI.exe" -Destination (Join-Path $packageRoot "ReviewMigratorGUI.exe") -Force
+          Copy-Item -Path "docs\staff_gui_guide.md" -Destination (Join-Path $packageRoot "staff_gui_guide.md") -Force
+          Copy-Item -Path "chrome_extensions\smartstore_review_image_collector" -Destination $extensionRoot -Recurse -Force
 
       - name: Upload Windows package
         uses: actions/upload-artifact@v4
