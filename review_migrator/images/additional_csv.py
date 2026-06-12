@@ -22,23 +22,30 @@ ADDITIONAL_IMAGE_IMPORT_COLUMNS = [
 
 
 @dataclass
-class AdditionalImageMergeResult:
+class ImageCsvApplyResult:
     reviews: list[NormalizedReview]
     rows: list[dict[str, object]]
-    merged_count: int = 0
+    applied_count: int = 0
     skipped_count: int = 0
 
+    @property
+    def merged_count(self) -> int:
+        return self.applied_count
 
-def merge_additional_image_urls(
+
+AdditionalImageMergeResult = ImageCsvApplyResult
+
+
+def apply_image_csv_urls(
     reviews: list[NormalizedReview],
     csv_path: str | Path,
     *,
     max_images_per_review: int = 4,
-) -> AdditionalImageMergeResult:
+) -> ImageCsvApplyResult:
     review_by_id = {review.naver_review_id: review for review in reviews}
-    urls_by_review_id = {review.naver_review_id: list(review.source_image_urls) for review in reviews}
+    urls_by_review_id = {review.naver_review_id: [] for review in reviews}
     import_rows: list[dict[str, object]] = []
-    merged_count = 0
+    applied_count = 0
     skipped_count = 0
 
     for row in _read_additional_image_rows(csv_path):
@@ -76,7 +83,7 @@ def merge_additional_image_urls(
                 message = f"CREMA supports up to {max_images_per_review} images per review"
             else:
                 current_urls.append(image_url)
-                merged_count += 1
+                applied_count += 1
 
         if status != "merged":
             skipped_count += 1
@@ -98,16 +105,29 @@ def merge_additional_image_urls(
         review.model_copy(update={"source_image_urls": urls_by_review_id[review.naver_review_id]})
         for review in reviews
     ]
-    return AdditionalImageMergeResult(
+    return ImageCsvApplyResult(
         reviews=updated_reviews,
         rows=import_rows,
-        merged_count=merged_count,
+        applied_count=applied_count,
         skipped_count=skipped_count,
     )
 
 
-def write_additional_image_import(path: str | Path, rows: list[dict[str, object]]) -> int:
+def merge_additional_image_urls(
+    reviews: list[NormalizedReview],
+    csv_path: str | Path,
+    *,
+    max_images_per_review: int = 4,
+) -> ImageCsvApplyResult:
+    return apply_image_csv_urls(reviews, csv_path, max_images_per_review=max_images_per_review)
+
+
+def write_image_csv_import(path: str | Path, rows: list[dict[str, object]]) -> int:
     return write_csv(path, rows, ADDITIONAL_IMAGE_IMPORT_COLUMNS)
+
+
+def write_additional_image_import(path: str | Path, rows: list[dict[str, object]]) -> int:
+    return write_image_csv_import(path, rows)
 
 
 def _read_additional_image_rows(path: str | Path) -> list[dict[str, str]]:

@@ -17,10 +17,11 @@ EXE가 없고 `run_review_migrator_gui.bat` 파일을 받은 경우에는 `.bat`
 1. `네이버 리뷰 엑셀`: 스마트스토어에서 다운로드한 리뷰 엑셀 파일
 2. `마켓플러스 CSV`: 카페24 마켓플러스에서 네이버 스마트스토어로 필터해서 다운로드한 상품 CSV입니다.
 3. `카페24 상품 CSV`: 카페24 상품 전체 목록 CSV입니다. `상품코드`와 `상품번호` 컬럼이 있어야 합니다.
+4. `이미지 CSV`: Chrome 확장프로그램으로 수집한 리뷰 이미지 URL CSV입니다.
 
 결과는 자동으로 기본 결과 폴더에 저장됩니다. Windows EXE는 `내 문서\ReviewMigrator\operator_runs`, macOS/개발 폴더 실행은 실행 폴더의 `operator_runs`를 사용합니다. `.env`와 이미지 공개 URL은 미리 준비된 기본 설정을 사용합니다.
 
-리뷰 이미지는 네이버 엑셀의 `포토/영상` URL에서 자동으로 내려받고, 실제 등록 때 Cafe24 FTP로 올라갑니다.
+리뷰 이미지는 이미지 CSV가 있을 때만 내려받고, 실제 등록 때 Cafe24 FTP로 올라갑니다. 네이버 엑셀의 `포토/영상` URL은 이미지 CSV를 만들 대상 리뷰를 찾는 용도로만 사용합니다.
 
 ## 안전 검증 순서
 
@@ -73,6 +74,6 @@ EXE가 없고 `run_review_migrator_gui.bat` 파일을 받은 경우에는 `.bat`
 - `failed_mapping.csv`에 내용이 있으면 상품번호 연결부터 수정해야 합니다.
 - `product_mapping_review_required.csv`에 내용이 있으면 자동 매칭이 확실하지 않은 상품입니다.
 - `마켓플러스 CSV`의 `P000...` 상품코드는 카페24 상품코드입니다. `카페24 상품 CSV`를 같이 넣으면 도구가 카페24 `상품번호`로 바꿔 크리마 상품과 맞춥니다.
-- `downloaded_images` 폴더에는 네이버에서 다운로드한 이미지가 저장됩니다.
+- `downloaded_images` 폴더에는 이미지 CSV 기준으로 다운로드한 이미지가 저장됩니다.
 - 네이버 이미지 URL은 크리마에 그대로 넣지 않습니다. 공개 저장소에 올린 뒤 그 공개 URL만 크리마 CSV/API에 들어갑니다.
 - 이미지가 크리마에 보이지 않으면 결과 폴더의 `image_public_url_checks.csv`와 `.env`의 `CAFE24_IMAGE_BASE_URL`을 담당자에게 확인 요청해주세요.

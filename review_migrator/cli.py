@@ -350,12 +350,13 @@ def _jsonl_error_count(path: Path) -> int:
 
 
 def command_run_all(args: argparse.Namespace) -> int:
+    image_csv = args.image_csv or args.additional_image_csv
     summary = run_all(
         RunAllOptions(
             naver_export_path=Path(args.input),
             product_mapping_path=Path(args.mapping) if args.mapping else None,
             image_dir=Path(args.image_dir) if args.image_dir else None,
-            additional_image_csv_path=Path(args.additional_image_csv) if args.additional_image_csv else None,
+            image_csv_path=Path(image_csv) if image_csv else None,
             image_base_url=args.image_base_url,
             image_public_dir=Path(args.image_public_dir) if args.image_public_dir else None,
             download_images_from_excel=not args.no_download_images,
@@ -553,7 +554,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     collect_images = subparsers.add_parser("collect-smartstore-images")
     collect_images.add_argument("--input", required=True, help="네이버 리뷰 엑셀 경로")
-    collect_images.add_argument("--output", required=True, help="생성할 additional_review_images.csv 경로")
+    collect_images.add_argument("--output", required=True, help="생성할 smartstore_review_images.csv 경로")
     collect_images.add_argument("--status-output", help="리뷰별 수집 상태 CSV 경로")
     collect_images.add_argument("--store-id", default="opengallery", help="스마트스토어 ID")
     collect_images.add_argument(
@@ -572,7 +573,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     parse_html = subparsers.add_parser("parse-smartstore-html")
     parse_html.add_argument("--input", nargs="+", required=True, help="스마트스토어 리뷰 모달 HTML/TXT 파일")
-    parse_html.add_argument("--output", required=True, help="생성할 additional_review_images.csv 경로")
+    parse_html.add_argument("--output", required=True, help="생성할 smartstore_review_images.csv 경로")
     parse_html.add_argument("--product-no", help="파일 전체에 적용할 네이버 상품번호")
     parse_html.add_argument("--encoding", default="utf-8")
     parse_html.set_defaults(func=command_parse_smartstore_html)
@@ -608,10 +609,11 @@ def build_parser() -> argparse.ArgumentParser:
     run_all_parser.add_argument("--input", required=True, help="네이버 리뷰 엑셀 경로")
     run_all_parser.add_argument("--mapping", help="상품 매핑 CSV 경로")
     run_all_parser.add_argument("--image-dir", help="사람이 다운로드한 이미지 폴더")
-    run_all_parser.add_argument("--additional-image-csv", help="스마트스토어 이미지 수집기로 만든 추가 이미지 CSV")
+    run_all_parser.add_argument("--image-csv", help="스마트스토어 이미지 수집기로 만든 이미지 CSV")
+    run_all_parser.add_argument("--additional-image-csv", help=argparse.SUPPRESS)
     run_all_parser.add_argument("--image-base-url", help="이미지를 공개 접근할 수 있는 base URL. 없으면 CAFE24_IMAGE_BASE_URL 사용")
     run_all_parser.add_argument("--image-public-dir", help="FTP 대신 로컬/마운트 공개 폴더를 쓸 때만 지정")
-    run_all_parser.add_argument("--no-download-images", action="store_true", help="네이버 엑셀 포토/영상 URL 다운로드를 건너뜀")
+    run_all_parser.add_argument("--no-download-images", action="store_true", help=argparse.SUPPRESS)
     run_all_parser.add_argument("--output-dir", default="operator_runs")
     run_all_parser.add_argument("--env-file", default=".env")
     run_all_parser.add_argument("--approve-upload", action="store_true")

@@ -1,6 +1,6 @@
 # SmartStore Review Image Collector
 
-스마트스토어 상품 리뷰 모달에서 리뷰 이미지 URL을 모아 `additional_review_images_*.csv`로 다운로드하는 Chrome 확장프로그램입니다.
+스마트스토어 상품 리뷰 모달에서 리뷰 이미지 URL을 모아 `smartstore_review_images_*.csv`로 다운로드하는 Chrome 확장프로그램입니다.
 
 ## 설치
 
@@ -24,8 +24,8 @@ chrome_extensions/smartstore_review_image_collector
 6. `대상 CSV`에 `smartstore_image_targets.csv`를 넣습니다. 파일을 선택하면 자동으로 읽히며, 필요하면 `선택한 대상 CSV 확인`을 눌러 상품/리뷰 수를 확인합니다.
 7. `대상 CSV 기준 자동 수집`을 누릅니다.
 8. 확장프로그램이 상품 페이지를 자동으로 이동하며 리뷰 모달을 열고, 대상 리뷰 ID만 찾아 이미지 URL을 수집합니다.
-9. 수집이 끝나면 `additional_review_images_*_targets_YYYYMMDD_HHMMSS.csv`와 상태 CSV가 다운로드됩니다.
-10. 크리마 등록 도구 GUI의 `추가 이미지 CSV(선택)`에 이미지 CSV를 넣고 `안전 검증 파일 만들기`를 다시 실행합니다.
+9. 수집이 끝나면 `smartstore_review_images_*_targets_YYYYMMDD_HHMMSS.csv`와 상태 CSV가 다운로드됩니다.
+10. 크리마 등록 도구 GUI의 `이미지 CSV`에 이미지 CSV를 넣고 `안전 검증 파일 만들기`를 다시 실행합니다.
 
 ## 버튼
 
@@ -41,4 +41,4 @@ chrome_extensions/smartstore_review_image_collector
 naver_product_no,naver_review_id,image_url,sort_order,media_type,source,match_status,match_basis
 ```
 
-이 CSV는 크리마 등록 도구의 `추가 이미지 CSV(선택)` 입력으로 바로 사용할 수 있습니다.
+이 CSV는 크리마 등록 도구의 `이미지 CSV` 입력으로 바로 사용할 수 있습니다.

@@ -25,7 +25,7 @@ powershell -ExecutionPolicy Bypass -File scripts/build_windows_exe.ps1
 
 GitHub Actions를 쓸 수 있는 저장소라면 `Build Windows EXE` 워크플로를 수동 실행해도 됩니다. 이 워크플로는 Windows 러너에서 테스트를 돌리고, EXE를 만든 뒤, 생성된 EXE를 `--smoke-test`로 실제 실행 확인합니다. 성공하면 `ReviewMigratorGUI.exe`, 경영지원팀용 안내 문서, Chrome 확장프로그램 폴더를 묶은 `ReviewMigratorGUI-windows` artifact를 업로드합니다. GitHub에서 내려받을 때는 ZIP 형태로 다운로드됩니다. `.env`는 보안상 ZIP에 포함하지 않고, 운영 PC에서 EXE와 같은 폴더에 따로 둡니다.
 
-GUI에서는 `네이버 리뷰 엑셀`, `마켓플러스 CSV`, `카페24 상품 CSV` 3개만 선택합니다. 상품 매핑은 항상 자동 생성하며, 안전 검증이 통과한 뒤에만 실제 등록을 진행할 수 있습니다.
+GUI에서는 `네이버 리뷰 엑셀`, `마켓플러스 CSV`, `카페24 상품 CSV`, `이미지 CSV`를 선택합니다. 상품 매핑은 항상 자동 생성하며, 안전 검증이 통과한 뒤에만 실제 등록을 진행할 수 있습니다.
 
 개발자/운영자가 터미널에서 한 번에 실행하려면 `run-all`을 사용합니다.
 
@@ -59,9 +59,9 @@ python -m review_migrator run-all \
   --approve-upload
 ```
 
-네이버 엑셀의 `포토/영상` 이미지는 로컬로 다운로드한 뒤 Cafe24 FTP에 올리고, 그 공개 URL을 크리마에 전달합니다. 검증 실행에서는 FTP에 실제 업로드하지 않고 업로드 예정 URL만 계산하며, `--approve-upload` 실행 때만 FTP 업로드와 크리마 등록을 진행합니다.
+이미지는 스마트스토어 이미지 수집기로 만든 `이미지 CSV`를 기준으로만 다운로드합니다. 네이버 엑셀의 `포토/영상` URL은 대상 리뷰를 찾는 단서로만 사용하고, 크리마에 보낼 이미지 소스로는 사용하지 않습니다. 검증 실행에서는 FTP에 실제 업로드하지 않고 업로드 예정 URL만 계산하며, `--approve-upload` 실행 때만 FTP 업로드와 크리마 등록을 진행합니다.
 
-네이버 엑셀에 이미지가 1개만 포함된 경우, Chrome 확장프로그램으로 스마트스토어 상품 리뷰 모달에서 추가 이미지 URL CSV를 만들 수 있습니다. 일반 Chrome에서 네이버 보안 인증을 직접 통과한 뒤 확장프로그램을 실행하므로, 자동화 브라우저 보안 인증 실패를 피할 수 있습니다.
+Chrome 확장프로그램으로 스마트스토어 상품 리뷰 모달에서 이미지 URL CSV를 만들 수 있습니다. 일반 Chrome에서 네이버 보안 인증을 직접 통과한 뒤 확장프로그램을 실행하므로, 자동화 브라우저 보안 인증 실패를 피할 수 있습니다.
 
 먼저 GUI에서 `안전 검증 파일 만들기`를 실행하면 결과 폴더에 `smartstore_image_targets.csv`가 생성됩니다. 이 파일을 확장프로그램에 넣으면 확장프로그램이 상품별로 자동 이동하며 엑셀에 있던 리뷰 ID만 찾아 이미지 URL을 수집합니다.
 
@@ -71,12 +71,12 @@ python -m review_migrator run-all \
 chrome_extensions/smartstore_review_image_collector
 ```
 
-생성된 `additional_review_images_*.csv`를 기존 실행에 넣으면 네이버 엑셀 이미지와 합쳐 리뷰 1건당 최대 4장까지 크리마에 전달합니다.
+생성된 `smartstore_review_images_*.csv`를 `이미지 CSV`로 넣으면 리뷰 1건당 최대 4장까지 크리마에 전달합니다. 이미지 CSV가 없는 실행은 `smartstore_image_targets.csv` 생성까지만 유효하며, 실제 등록은 막힙니다.
 
 ```bash
 python -m review_migrator run-all \
   --input data/naver_reviews.xlsx \
-  --additional-image-csv data/additional_review_images.csv \
+  --image-csv data/smartstore_review_images.csv \
   --output-dir operator_runs \
   --auto-build-mapping
 ```

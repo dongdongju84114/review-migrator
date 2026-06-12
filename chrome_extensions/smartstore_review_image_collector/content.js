@@ -498,7 +498,7 @@ function reviewImageUrlsFromItem(item) {
 function downloadRows(rows, suffix) {
   const productNo = productNoFromUrl() || 'unknown_product';
   const timestamp = timestampForFileName();
-  const filename = `additional_review_images_${productNo}_${suffix}_${timestamp}.csv`;
+  const filename = `smartstore_review_images_${productNo}_${suffix}_${timestamp}.csv`;
   const csv = rowsToCsv(rows, IMAGE_CSV_HEADERS);
   downloadCsvText(csv, filename);
 }
@@ -506,7 +506,7 @@ function downloadRows(rows, suffix) {
 function downloadStatusRows(rows) {
   const timestamp = timestampForFileName();
   const csv = rowsToCsv(rows, STATUS_CSV_HEADERS);
-  downloadCsvText(csv, `additional_review_images_targets_status_${timestamp}.csv`);
+  downloadCsvText(csv, `smartstore_review_images_targets_status_${timestamp}.csv`);
 }
 
 function downloadCsvText(csv, filename) {

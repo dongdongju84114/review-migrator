@@ -38,7 +38,7 @@ class ReviewMigratorGui:
         self.env_file = StringVar(value=str(default_env_file()))
         self.crema_products_csv = StringVar()
         self.cafe24_products_csv = StringVar()
-        self.additional_image_csv = StringVar()
+        self.image_csv = StringVar()
         self.approve_upload = BooleanVar(value=False)
 
         self._build()
@@ -61,7 +61,7 @@ class ReviewMigratorGui:
         title.pack(anchor="w")
         subtitle = ttk.Label(
             root_frame,
-            text="3개 파일을 선택한 뒤 안전 검증을 먼저 실행하세요. 통과한 경우에만 실제 등록을 진행합니다.",
+            text="입력 파일을 선택한 뒤 안전 검증을 먼저 실행하세요. 통과한 경우에만 실제 등록을 진행합니다.",
             style="Subtitle.TLabel",
         )
         subtitle.pack(anchor="w", pady=(6, 18))
@@ -71,7 +71,7 @@ class ReviewMigratorGui:
         self._file_row(form, "네이버 리뷰 엑셀", self.naver_export_path, self._choose_naver_export, 0)
         self._file_row(form, "마켓플러스 CSV", self.crema_products_csv, self._choose_crema_products_csv, 1)
         self._file_row(form, "카페24 상품 CSV", self.cafe24_products_csv, self._choose_cafe24_products_csv, 2)
-        self._file_row(form, "추가 이미지 CSV(선택)", self.additional_image_csv, self._choose_additional_image_csv, 3)
+        self._file_row(form, "이미지 CSV", self.image_csv, self._choose_image_csv, 3)
         helper = ttk.Label(
             form,
             text=f"결과 저장 폴더: {self.output_dir.get()} / .env는 실행 파일 또는 프로젝트 폴더의 기본 설정을 사용합니다.",
@@ -170,10 +170,10 @@ class ReviewMigratorGui:
         if path:
             self.cafe24_products_csv.set(path)
 
-    def _choose_additional_image_csv(self) -> None:
-        path = filedialog.askopenfilename(title="추가 이미지 CSV 선택", filetypes=[("CSV", "*.csv"), ("All files", "*.*")])
+    def _choose_image_csv(self) -> None:
+        path = filedialog.askopenfilename(title="이미지 CSV 선택", filetypes=[("CSV", "*.csv"), ("All files", "*.*")])
         if path:
-            self.additional_image_csv.set(path)
+            self.image_csv.set(path)
 
     def run_dry_run(self) -> None:
         self._run(approve_upload=False)
@@ -236,7 +236,7 @@ class ReviewMigratorGui:
             naver_export_path=Path(self.naver_export_path.get()),
             product_mapping_path=None,
             image_dir=None,
-            additional_image_csv_path=Path(self.additional_image_csv.get()) if self.additional_image_csv.get() else None,
+            image_csv_path=Path(self.image_csv.get()) if self.image_csv.get() else None,
             image_base_url=None,
             image_public_dir=None,
             output_base_dir=output_base,

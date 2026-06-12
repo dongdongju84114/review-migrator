@@ -44,6 +44,8 @@ def test_run_all_can_generate_mapping_before_payload(tmp_path):
     )
 
     assert summary.files["product_mapping_generated"].exists()
+    assert "이미지 CSV가 필요합니다" in "\n".join(summary.blocking_messages)
+    assert not summary.files["downloaded_images_dir"].exists()
     assert summary.payload_count == 2
     assert any("자동 상품 매핑 검토 필요" in message for message in summary.blocking_messages)
 

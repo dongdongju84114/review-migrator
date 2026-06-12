@@ -29,6 +29,7 @@ EXE가 없고 개발 폴더를 그대로 전달하는 경우에는 `run_review_m
 1. `네이버 리뷰 엑셀`: 스마트스토어 관리자에서 다운로드한 리뷰 엑셀
 2. `마켓플러스 CSV`: 카페24 마켓플러스에서 네이버 스마트스토어로 필터해서 다운로드한 상품 CSV다.
 3. `카페24 상품 CSV`: 카페24 상품 전체 목록 CSV다. `상품코드`와 `상품번호` 컬럼이 있어야 한다.
+4. `이미지 CSV`: Chrome 확장프로그램으로 수집한 리뷰 이미지 URL CSV다.
 
 결과는 자동으로 기본 결과 폴더에 저장된다. Windows EXE는 `내 문서\ReviewMigrator\operator_runs`, macOS/개발 폴더 실행은 실행 폴더의 `operator_runs`를 사용한다. `.env`와 이미지 공개 URL은 미리 준비된 기본 설정을 사용한다.
 
@@ -40,14 +41,14 @@ EXE가 없고 개발 폴더를 그대로 전달하는 경우에는 `run_review_m
 - `product_mapping.generated.csv`: 자동 생성된 상품 매핑 파일
 - `product_mapping_review_required.csv`: 사람이 확인해야 하는 상품 매핑 후보
 - `failed_mapping.csv`: 상품 매핑 실패 목록
-- `downloaded_images/`: 네이버에서 다운로드한 이미지 파일
+- `downloaded_images/`: 이미지 CSV 기준으로 다운로드한 이미지 파일
 - `downloaded_image_manifest.csv`: 원본 URL, 로컬 파일, 공개 URL 매칭 목록
 - `image_matches_review_required.csv`: 사람이 확인해야 하는 이미지 후보
 - `crema_other_reviews_upload.csv`: 크리마 CSV 업로드용 파일
 - `crema_payloads.jsonl`: 크리마 API 등록 후보
 
 `run_summary.html`에 `검토 필요`가 남아 있으면 실제 등록을 누르지 않는다. 특히 `product_mapping_review_required.csv`가 있으면 상품 연결을 사람이 확인해야 한다. 검토 필요가 남은 상태에서 실제 등록을 눌러도 도구는 크리마 등록과 Cafe24 FTP 업로드를 보류한다.
-Cafe24 FTP 설정이나 이미지 공개 URL이 없으면 네이버 이미지는 로컬 다운로드까지만 완료되고, 크리마에는 이미지 URL을 넣지 않는다.
+Cafe24 FTP 설정이나 이미지 공개 URL이 없으면 이미지는 로컬 다운로드까지만 완료되고, 크리마에는 이미지 URL을 넣지 않는다.
 
 `안전 검증 파일 만들기`는 Cafe24 FTP에도 실제 업로드하지 않는다. `downloaded_image_manifest.csv`의 이미지 상태가 `planned`이면 실제 등록 승인 때 FTP에 올라갈 예정이라는 뜻이다.
 
@@ -58,11 +59,11 @@ Cafe24 FTP 설정이나 이미지 공개 URL이 없으면 네이버 이미지는
 1. 네이버 스마트스토어 관리자에서 리뷰 엑셀을 직접 다운로드한다.
 2. 기간은 1년, 별점은 4점/5점 기준으로 검색하되, 도구도 1~3점 리뷰를 한 번 더 제외한다.
 3. 상품 매핑은 기본적으로 도구가 자동 생성한다. 단, `product_mapping_review_required.csv`에 남은 항목은 사람이 확인해 수정한다.
-4. 리뷰 이미지는 도구가 네이버 엑셀의 `포토/영상` URL에서 자동 다운로드한다. GUI에서 별도 이미지 폴더를 고를 필요는 없다.
-5. 엑셀에 없는 추가 이미지를 함께 이전하려면 먼저 GUI에서 `안전 검증 파일 만들기`를 실행해 결과 폴더의 `smartstore_image_targets.csv`를 만든다.
+4. 이미지는 이미지 CSV가 있을 때만 다운로드한다. 네이버 엑셀의 `포토/영상` URL은 대상 리뷰를 찾는 단서로만 사용한다.
+5. 먼저 GUI에서 `안전 검증 파일 만들기`를 실행해 결과 폴더의 `smartstore_image_targets.csv`를 만든다. 이때 이미지 CSV가 없으면 실제 등록은 막히지만 대상 CSV는 생성된다.
 6. Chrome 확장프로그램 `SmartStore Review Image Collector`에 `smartstore_image_targets.csv`를 넣고 `대상 CSV 기준 자동 수집`을 실행한다. 확장프로그램은 일반 Chrome 탭에서 상품별로 자동 이동하며 엑셀에 있던 리뷰 ID만 찾아 이미지 URL을 수집한다.
 7. 일반 Chrome에서 네이버 보안 인증 또는 로그인을 직접 완료한 뒤 확장프로그램을 실행한다. 자동화 브라우저가 아니라 사용자의 정상 Chrome 탭에서 실행되므로 보안 인증 반복 실패를 줄일 수 있다.
-8. 추가 이미지 CSV가 생성되면 GUI의 `추가 이미지 CSV(선택)`에 넣는다. 이후 `안전 검증 파일 만들기`를 다시 실행하면 네이버 엑셀 이미지와 추가 이미지가 합쳐져 리뷰 1건당 최대 4장까지 처리된다.
+8. 이미지 CSV가 생성되면 GUI의 `이미지 CSV`에 넣는다. 이후 `안전 검증 파일 만들기`를 다시 실행하면 이미지 CSV 기준으로 리뷰 1건당 최대 4장까지 처리된다.
 
 ## 1-1. Cafe24 FTP 설정
 

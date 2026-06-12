@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from review_migrator.images.additional_csv import merge_additional_image_urls
+from review_migrator.images.additional_csv import apply_image_csv_urls
 from review_migrator.naver_export.normalizer import normalize_naver_export
 from review_migrator.smartstore.review_images import extract_smartstore_review_image_rows
 
@@ -42,10 +42,10 @@ def test_extracts_review_images_from_smartstore_review_item_html():
     ]
 
 
-def test_merge_additional_images_dedupes_and_caps_at_four(tmp_path):
+def test_image_csv_replaces_excel_images_and_caps_at_four(tmp_path):
     reviews = normalize_naver_export(FIXTURES / "sample_naver_reviews.xlsx").records
     first = reviews[0]
-    csv_path = tmp_path / "additional_review_images.csv"
+    csv_path = tmp_path / "smartstore_review_images.csv"
     csv_path.write_text(
         "\n".join(
             [
@@ -60,7 +60,7 @@ def test_merge_additional_images_dedupes_and_caps_at_four(tmp_path):
         encoding="utf-8",
     )
 
-    result = merge_additional_image_urls(reviews, csv_path)
+    result = apply_image_csv_urls(reviews, csv_path)
     updated_first = next(review for review in result.reviews if review.naver_review_id == first.naver_review_id)
 
     assert updated_first.source_image_urls == [
@@ -69,9 +69,9 @@ def test_merge_additional_images_dedupes_and_caps_at_four(tmp_path):
         "https://example.com/RV-001-3.jpg",
         "https://example.com/RV-001-4.jpg",
     ]
-    assert result.merged_count == 3
+    assert result.applied_count == 4
     assert [row["merge_status"] for row in result.rows] == [
-        "duplicate_skipped",
+        "merged",
         "merged",
         "merged",
         "merged",

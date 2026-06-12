@@ -21,8 +21,8 @@ from review_migrator.crema.reviews import ReviewService
 from review_migrator.harness.approval_gate import ensure_apply_allowed
 from review_migrator.harness.audit_log import append_event
 from review_migrator.images.additional_csv import (
-    merge_additional_image_urls,
-    write_additional_image_import,
+    apply_image_csv_urls,
+    write_image_csv_import,
 )
 from review_migrator.images.downloader import download_review_images, write_download_manifest
 from review_migrator.images.ftp_storage import (
@@ -63,7 +63,7 @@ class RunAllOptions:
     naver_export_path: Path
     product_mapping_path: Path | None = None
     image_dir: Path | None = None
-    additional_image_csv_path: Path | None = None
+    image_csv_path: Path | None = None
     image_base_url: str | None = None
     image_public_dir: Path | None = None
     download_images_from_excel: bool = True
@@ -90,8 +90,9 @@ class RunAllSummary:
     mapped_count: int = 0
     failed_mapping_count: int = 0
     auto_image_match_count: int = 0
-    additional_image_merged_count: int = 0
-    additional_image_skipped_count: int = 0
+    image_csv_applied_count: int = 0
+    image_csv_skipped_count: int = 0
+    smartstore_image_target_count: int = 0
     downloaded_image_count: int = 0
     ftp_image_planned_count: int = 0
     ftp_image_uploaded_count: int = 0
@@ -142,7 +143,7 @@ def run_all(options: RunAllOptions, log: LogFunc | None = None) -> RunAllSummary
         "failed_mapping": output_dir / "failed_mapping.csv",
         "image_matches": output_dir / "image_matches.csv",
         "image_review_required": output_dir / "image_matches_review_required.csv",
-        "additional_image_import": output_dir / "additional_image_import.csv",
+        "image_csv_import": output_dir / "image_csv_import.csv",
         "downloaded_images_dir": output_dir / "downloaded_images",
         "downloaded_image_manifest": output_dir / "downloaded_image_manifest.csv",
         "image_public_url_checks": output_dir / "image_public_url_checks.csv",
@@ -162,20 +163,46 @@ def run_all(options: RunAllOptions, log: LogFunc | None = None) -> RunAllSummary
 
     logger("1/6 네이버 리뷰 엑셀을 읽고 표준화합니다.")
     normalize_result = normalize_naver_export(options.naver_export_path)
-    if options.additional_image_csv_path:
-        logger("  - 추가 이미지 CSV를 병합합니다.")
-        additional_image_result = merge_additional_image_urls(
+    image_target_review_ids = {
+        review.naver_review_id
+        for review in normalize_result.records
+        if review.has_image or review.source_image_urls
+    }
+    summary.smartstore_image_target_count = write_smartstore_image_targets(
+        paths["smartstore_image_targets"],
+        normalize_result.records,
+    )
+    if options.image_csv_path:
+        logger("  - 이미지 CSV를 적용합니다.")
+        image_csv_result = apply_image_csv_urls(
             normalize_result.records,
-            options.additional_image_csv_path,
+            options.image_csv_path,
         )
-        normalize_result.records = additional_image_result.reviews
-        write_additional_image_import(paths["additional_image_import"], additional_image_result.rows)
-        summary.additional_image_merged_count = additional_image_result.merged_count
-        summary.additional_image_skipped_count = additional_image_result.skipped_count
+        normalize_result.records = image_csv_result.reviews
+        write_image_csv_import(paths["image_csv_import"], image_csv_result.rows)
+        summary.image_csv_applied_count = image_csv_result.applied_count
+        summary.image_csv_skipped_count = image_csv_result.skipped_count
+        image_csv_review_ids = {
+            review.naver_review_id
+            for review in normalize_result.records
+            if review.source_image_urls
+        }
+        missing_image_csv_count = len(image_target_review_ids - image_csv_review_ids)
+        if missing_image_csv_count:
+            summary.blocking_messages.append(
+                f"이미지 CSV 누락 리뷰 {missing_image_csv_count}건: smartstore_image_targets.csv 기준으로 다시 수집해주세요."
+            )
     else:
-        write_additional_image_import(paths["additional_image_import"], [])
+        normalize_result.records = [
+            review.model_copy(update={"source_image_urls": []})
+            for review in normalize_result.records
+        ]
+        write_image_csv_import(paths["image_csv_import"], [])
+        if summary.smartstore_image_target_count:
+            summary.blocking_messages.append(
+                "이미지 CSV가 필요합니다. smartstore_image_targets.csv로 이미지 CSV를 만든 뒤 다시 실행해주세요."
+            )
     write_normalized_outputs(normalize_result.records, paths["normalized_jsonl"], paths["normalized_csv"])
-    write_smartstore_image_targets(paths["smartstore_image_targets"], normalize_result.records)
     write_jsonl(paths["normalize_issues"], normalize_result.issues)
     summary.normalized_count = len(normalize_result.records)
     summary.normalize_error_count = normalize_result.error_count
@@ -259,8 +286,8 @@ def run_all(options: RunAllOptions, log: LogFunc | None = None) -> RunAllSummary
     image_base_url = options.image_base_url
     if not image_base_url:
         image_base_url = os.getenv("CAFE24_IMAGE_BASE_URL")
-    if options.download_images_from_excel and image_source_count:
-        logger("  - 네이버 엑셀의 포토/영상 URL을 로컬에 다운로드합니다.")
+    if options.image_csv_path and image_source_count:
+        logger("  - 이미지 CSV의 이미지 URL을 로컬에 다운로드합니다.")
         downloaded_matches, manifest_rows = download_review_images(
             normalize_result.records,
             download_dir=paths["downloaded_images_dir"],
@@ -336,6 +363,8 @@ def run_all(options: RunAllOptions, log: LogFunc | None = None) -> RunAllSummary
         summary.review_required_image_count = len(review_required)
     else:
         write_image_matches(paths["image_review_required"], [])
+    if not paths["downloaded_image_manifest"].exists():
+        write_download_manifest(paths["downloaded_image_manifest"], [])
     if not paths["image_public_url_checks"].exists():
         write_public_image_url_checks(paths["image_public_url_checks"], [])
     write_image_matches(paths["image_matches"], list(image_matches.values()))
@@ -563,8 +592,9 @@ def render_run_summary_markdown(summary: RunAllSummary) -> str:
         f"- 낮은 별점/경고: {summary.low_score_or_warning_count}건",
         f"- 상품 매핑 성공: {summary.mapped_count}건",
         f"- 상품 매핑 실패: {summary.failed_mapping_count}건",
-        f"- 추가 이미지 병합: {summary.additional_image_merged_count}건",
-        f"- 추가 이미지 제외: {summary.additional_image_skipped_count}건",
+        f"- 이미지 CSV 대상 리뷰: {summary.smartstore_image_target_count}건",
+        f"- 이미지 CSV 적용: {summary.image_csv_applied_count}건",
+        f"- 이미지 CSV 제외: {summary.image_csv_skipped_count}건",
         f"- 이미지 자동 매칭: {summary.auto_image_match_count}건",
         f"- Cafe24 FTP 업로드 예정 이미지: {summary.ftp_image_planned_count}건",
         f"- Cafe24 FTP 업로드 완료 이미지: {summary.ftp_image_uploaded_count}건",
@@ -617,8 +647,9 @@ def render_run_summary_html(summary: RunAllSummary) -> str:
     <dt>표준화 리뷰</dt><dd>{summary.normalized_count}건</dd>
     <dt>상품 매핑 성공</dt><dd>{summary.mapped_count}건</dd>
     <dt>상품 매핑 실패</dt><dd>{summary.failed_mapping_count}건</dd>
-    <dt>추가 이미지 병합</dt><dd>{summary.additional_image_merged_count}건</dd>
-    <dt>추가 이미지 제외</dt><dd>{summary.additional_image_skipped_count}건</dd>
+    <dt>이미지 CSV 대상 리뷰</dt><dd>{summary.smartstore_image_target_count}건</dd>
+    <dt>이미지 CSV 적용</dt><dd>{summary.image_csv_applied_count}건</dd>
+    <dt>이미지 CSV 제외</dt><dd>{summary.image_csv_skipped_count}건</dd>
     <dt>이미지 자동 매칭</dt><dd>{summary.auto_image_match_count}건</dd>
     <dt>Cafe24 FTP 업로드 예정</dt><dd>{summary.ftp_image_planned_count}건</dd>
     <dt>Cafe24 FTP 업로드 완료</dt><dd>{summary.ftp_image_uploaded_count}건</dd>
