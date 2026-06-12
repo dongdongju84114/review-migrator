@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "SmartStore Review Image Collector",
+  "version": "0.1.0",
+  "description": "Collects SmartStore review image URLs from the current product review modal and downloads a CREMA migration CSV.",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "스스 리뷰 이미지 CSV"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://smartstore.naver.com/*/products/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "host_permissions": [
+    "https://smartstore.naver.com/*"
+  ],
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ]
+}

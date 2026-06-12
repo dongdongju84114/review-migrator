@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>스스 리뷰 이미지 CSV</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main>
+    <h1>스스 리뷰 이미지 CSV</h1>
+    <label>
+      대상 CSV
+      <input id="targetCsv" type="file" accept=".csv,text/csv">
+    </label>
+    <button id="loadTargetCsv" type="button" class="secondary">선택한 대상 CSV 확인</button>
+    <label>
+      정렬
+      <select id="sort">
+        <option value="latest">최신순</option>
+        <option value="ranking">랭킹순</option>
+        <option value="score_high">평점 높은순</option>
+        <option value="score_low">평점 낮은순</option>
+      </select>
+    </label>
+    <label>
+      스토어 ID
+      <input id="storeId" type="text" value="opengallery">
+    </label>
+    <label>
+      상품당 최대 스크롤
+      <input id="maxScrolls" type="number" min="1" max="500" value="80">
+    </label>
+    <label>
+      스크롤 대기(ms)
+      <input id="waitMs" type="number" min="100" max="5000" step="100" value="700">
+    </label>
+    <button id="collectTargets" type="button">대상 CSV 기준 자동 수집</button>
+    <button id="collect" type="button">현재 상품 전체 이미지 CSV</button>
+    <button id="downloadLoaded" type="button">현재 로드된 리뷰만 CSV</button>
+    <button id="stop" type="button" class="secondary">중지</button>
+    <p id="status">스마트스토어 상품 페이지에서 실행해주세요.</p>
+  </main>
+  <script src="popup.js"></script>
+</body>
+</html>

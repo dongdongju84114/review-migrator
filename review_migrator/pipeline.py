@@ -20,6 +20,10 @@ from review_migrator.crema.products import ProductService
 from review_migrator.crema.reviews import ReviewService
 from review_migrator.harness.approval_gate import ensure_apply_allowed
 from review_migrator.harness.audit_log import append_event
+from review_migrator.images.additional_csv import (
+    merge_additional_image_urls,
+    write_additional_image_import,
+)
 from review_migrator.images.downloader import download_review_images, write_download_manifest
 from review_migrator.images.ftp_storage import (
     FtpStorageConfig,
@@ -59,6 +63,7 @@ class RunAllOptions:
     naver_export_path: Path
     product_mapping_path: Path | None = None
     image_dir: Path | None = None
+    additional_image_csv_path: Path | None = None
     image_base_url: str | None = None
     image_public_dir: Path | None = None
     download_images_from_excel: bool = True
@@ -85,6 +90,8 @@ class RunAllSummary:
     mapped_count: int = 0
     failed_mapping_count: int = 0
     auto_image_match_count: int = 0
+    additional_image_merged_count: int = 0
+    additional_image_skipped_count: int = 0
     downloaded_image_count: int = 0
     ftp_image_planned_count: int = 0
     ftp_image_uploaded_count: int = 0
@@ -128,12 +135,14 @@ def run_all(options: RunAllOptions, log: LogFunc | None = None) -> RunAllSummary
         "normalized_jsonl": output_dir / "reviews_normalized.jsonl",
         "normalized_csv": output_dir / "reviews_normalized.csv",
         "normalize_issues": output_dir / "normalize_issues.jsonl",
+        "smartstore_image_targets": output_dir / "smartstore_image_targets.csv",
         "product_mapping_generated": output_dir / "product_mapping.generated.csv",
         "product_mapping_candidates": output_dir / "product_mapping_candidates.csv",
         "product_mapping_review_required": output_dir / "product_mapping_review_required.csv",
         "failed_mapping": output_dir / "failed_mapping.csv",
         "image_matches": output_dir / "image_matches.csv",
         "image_review_required": output_dir / "image_matches_review_required.csv",
+        "additional_image_import": output_dir / "additional_image_import.csv",
         "downloaded_images_dir": output_dir / "downloaded_images",
         "downloaded_image_manifest": output_dir / "downloaded_image_manifest.csv",
         "image_public_url_checks": output_dir / "image_public_url_checks.csv",
@@ -153,7 +162,20 @@ def run_all(options: RunAllOptions, log: LogFunc | None = None) -> RunAllSummary
 
     logger("1/6 네이버 리뷰 엑셀을 읽고 표준화합니다.")
     normalize_result = normalize_naver_export(options.naver_export_path)
+    if options.additional_image_csv_path:
+        logger("  - 추가 이미지 CSV를 병합합니다.")
+        additional_image_result = merge_additional_image_urls(
+            normalize_result.records,
+            options.additional_image_csv_path,
+        )
+        normalize_result.records = additional_image_result.reviews
+        write_additional_image_import(paths["additional_image_import"], additional_image_result.rows)
+        summary.additional_image_merged_count = additional_image_result.merged_count
+        summary.additional_image_skipped_count = additional_image_result.skipped_count
+    else:
+        write_additional_image_import(paths["additional_image_import"], [])
     write_normalized_outputs(normalize_result.records, paths["normalized_jsonl"], paths["normalized_csv"])
+    write_smartstore_image_targets(paths["smartstore_image_targets"], normalize_result.records)
     write_jsonl(paths["normalize_issues"], normalize_result.issues)
     summary.normalized_count = len(normalize_result.records)
     summary.normalize_error_count = normalize_result.error_count
@@ -541,6 +563,8 @@ def render_run_summary_markdown(summary: RunAllSummary) -> str:
         f"- 낮은 별점/경고: {summary.low_score_or_warning_count}건",
         f"- 상품 매핑 성공: {summary.mapped_count}건",
         f"- 상품 매핑 실패: {summary.failed_mapping_count}건",
+        f"- 추가 이미지 병합: {summary.additional_image_merged_count}건",
+        f"- 추가 이미지 제외: {summary.additional_image_skipped_count}건",
         f"- 이미지 자동 매칭: {summary.auto_image_match_count}건",
         f"- Cafe24 FTP 업로드 예정 이미지: {summary.ftp_image_planned_count}건",
         f"- Cafe24 FTP 업로드 완료 이미지: {summary.ftp_image_uploaded_count}건",
@@ -593,6 +617,8 @@ def render_run_summary_html(summary: RunAllSummary) -> str:
     <dt>표준화 리뷰</dt><dd>{summary.normalized_count}건</dd>
     <dt>상품 매핑 성공</dt><dd>{summary.mapped_count}건</dd>
     <dt>상품 매핑 실패</dt><dd>{summary.failed_mapping_count}건</dd>
+    <dt>추가 이미지 병합</dt><dd>{summary.additional_image_merged_count}건</dd>
+    <dt>추가 이미지 제외</dt><dd>{summary.additional_image_skipped_count}건</dd>
     <dt>이미지 자동 매칭</dt><dd>{summary.auto_image_match_count}건</dd>
     <dt>Cafe24 FTP 업로드 예정</dt><dd>{summary.ftp_image_planned_count}건</dd>
     <dt>Cafe24 FTP 업로드 완료</dt><dd>{summary.ftp_image_uploaded_count}건</dd>
@@ -637,3 +663,30 @@ def _failed_upload_row(code: str, error: Exception) -> dict[str, object]:
         "status_code": error_status_code(error) or "",
         "response_body": error_response_body_text(error),
     }
+
+
+def write_smartstore_image_targets(path: Path, reviews: list) -> int:
+    rows = [
+        {
+            "naver_product_no": review.naver_product_no,
+            "naver_review_id": review.naver_review_id,
+            "created_at": review.created_at_kst.isoformat(),
+            "reviewer_name": review.reviewer_name,
+            "score": review.score,
+            "idempotency_code": review.idempotency_code,
+        }
+        for review in reviews
+        if review.has_image or review.source_image_urls
+    ]
+    return write_csv(
+        path,
+        rows,
+        [
+            "naver_product_no",
+            "naver_review_id",
+            "created_at",
+            "reviewer_name",
+            "score",
+            "idempotency_code",
+        ],
+    )

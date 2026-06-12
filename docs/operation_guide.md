@@ -20,7 +20,7 @@ powershell -ExecutionPolicy Bypass -File scripts/build_windows_exe.ps1
 
 생성 결과는 `dist\ReviewMigratorGUI.exe`다. 이 EXE와 `.env`를 같은 폴더에 두고 운영 PC에 전달한다. Windows EXE 실행 결과는 기본적으로 `내 문서\ReviewMigrator\operator_runs`에 저장된다.
 
-GitHub Actions를 쓸 수 있는 저장소라면 `Build Windows EXE` 워크플로를 수동 실행한다. 이 워크플로는 Windows 러너에서 테스트를 돌리고, EXE를 만든 뒤, 생성된 EXE를 `--smoke-test`로 실제 실행 확인한 다음 artifact로 업로드한다.
+GitHub Actions를 쓸 수 있는 저장소라면 `Build Windows EXE` 워크플로를 수동 실행한다. 이 워크플로는 Windows 러너에서 테스트를 돌리고, EXE를 만든 뒤, 생성된 EXE를 `--smoke-test`로 실제 실행 확인한다. 성공하면 `ReviewMigratorGUI.exe`, 경영지원팀용 안내 문서, Chrome 확장프로그램 폴더를 묶은 `ReviewMigratorGUI-windows` artifact를 업로드한다. GitHub에서 내려받을 때는 ZIP 형태로 다운로드된다. `.env`는 보안상 ZIP에 포함하지 않고, 운영 PC에서 EXE와 같은 폴더에 따로 둔다.
 
 EXE가 없고 개발 폴더를 그대로 전달하는 경우에는 `run_review_migrator_gui.bat`을 사용한다. Python 3.11 이상이 없으면 `.bat`이 `winget` 자동 설치를 물어보거나 Python 다운로드 페이지를 연다. 첫 실행 때 `.venv` 가상환경을 만들고 필요한 패키지를 설치하므로 인터넷 연결이 필요할 수 있다.
 
@@ -59,6 +59,10 @@ Cafe24 FTP 설정이나 이미지 공개 URL이 없으면 네이버 이미지는
 2. 기간은 1년, 별점은 4점/5점 기준으로 검색하되, 도구도 1~3점 리뷰를 한 번 더 제외한다.
 3. 상품 매핑은 기본적으로 도구가 자동 생성한다. 단, `product_mapping_review_required.csv`에 남은 항목은 사람이 확인해 수정한다.
 4. 리뷰 이미지는 도구가 네이버 엑셀의 `포토/영상` URL에서 자동 다운로드한다. GUI에서 별도 이미지 폴더를 고를 필요는 없다.
+5. 엑셀에 없는 추가 이미지를 함께 이전하려면 먼저 GUI에서 `안전 검증 파일 만들기`를 실행해 결과 폴더의 `smartstore_image_targets.csv`를 만든다.
+6. Chrome 확장프로그램 `SmartStore Review Image Collector`에 `smartstore_image_targets.csv`를 넣고 `대상 CSV 기준 자동 수집`을 실행한다. 확장프로그램은 일반 Chrome 탭에서 상품별로 자동 이동하며 엑셀에 있던 리뷰 ID만 찾아 이미지 URL을 수집한다.
+7. 일반 Chrome에서 네이버 보안 인증 또는 로그인을 직접 완료한 뒤 확장프로그램을 실행한다. 자동화 브라우저가 아니라 사용자의 정상 Chrome 탭에서 실행되므로 보안 인증 반복 실패를 줄일 수 있다.
+8. 추가 이미지 CSV가 생성되면 GUI의 `추가 이미지 CSV(선택)`에 넣는다. 이후 `안전 검증 파일 만들기`를 다시 실행하면 네이버 엑셀 이미지와 추가 이미지가 합쳐져 리뷰 1건당 최대 4장까지 처리된다.
 
 ## 1-1. Cafe24 FTP 설정
 

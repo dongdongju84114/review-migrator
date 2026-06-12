@@ -38,6 +38,7 @@ class ReviewMigratorGui:
         self.env_file = StringVar(value=str(default_env_file()))
         self.crema_products_csv = StringVar()
         self.cafe24_products_csv = StringVar()
+        self.additional_image_csv = StringVar()
         self.approve_upload = BooleanVar(value=False)
 
         self._build()
@@ -70,12 +71,13 @@ class ReviewMigratorGui:
         self._file_row(form, "네이버 리뷰 엑셀", self.naver_export_path, self._choose_naver_export, 0)
         self._file_row(form, "마켓플러스 CSV", self.crema_products_csv, self._choose_crema_products_csv, 1)
         self._file_row(form, "카페24 상품 CSV", self.cafe24_products_csv, self._choose_cafe24_products_csv, 2)
+        self._file_row(form, "추가 이미지 CSV(선택)", self.additional_image_csv, self._choose_additional_image_csv, 3)
         helper = ttk.Label(
             form,
             text=f"결과 저장 폴더: {self.output_dir.get()} / .env는 실행 파일 또는 프로젝트 폴더의 기본 설정을 사용합니다.",
             wraplength=980,
         )
-        helper.grid(row=3, column=1, sticky="w", padx=8, pady=(2, 10))
+        helper.grid(row=4, column=1, sticky="w", padx=8, pady=(2, 10))
 
         controls = ttk.LabelFrame(root_frame, text="실행")
         controls.pack(fill="x", pady=(0, 12))
@@ -168,6 +170,11 @@ class ReviewMigratorGui:
         if path:
             self.cafe24_products_csv.set(path)
 
+    def _choose_additional_image_csv(self) -> None:
+        path = filedialog.askopenfilename(title="추가 이미지 CSV 선택", filetypes=[("CSV", "*.csv"), ("All files", "*.*")])
+        if path:
+            self.additional_image_csv.set(path)
+
     def run_dry_run(self) -> None:
         self._run(approve_upload=False)
 
@@ -229,6 +236,7 @@ class ReviewMigratorGui:
             naver_export_path=Path(self.naver_export_path.get()),
             product_mapping_path=None,
             image_dir=None,
+            additional_image_csv_path=Path(self.additional_image_csv.get()) if self.additional_image_csv.get() else None,
             image_base_url=None,
             image_public_dir=None,
             output_base_dir=output_base,

@@ -15,6 +15,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+collector = [
+    "playwright>=1.44",
+]
 test = [
     "pytest>=8.0",
     "respx>=0.21",
@@ -25,6 +28,9 @@ windows-build = [
 
 [project.scripts]
 review-migrator = "review_migrator.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["review_migrator*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

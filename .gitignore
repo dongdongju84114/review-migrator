@@ -3,6 +3,8 @@
 .DS_Store
 .venv/
 .venv-build-windows/
+review_migrator.egg-info/
+smartstore_browser_profile/
 __pycache__/
 *.pyc
 .pytest_cache/

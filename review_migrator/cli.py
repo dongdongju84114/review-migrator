@@ -36,6 +36,12 @@ from review_migrator.naver_export.normalizer import normalize_naver_export, writ
 from review_migrator.pipeline import RunAllOptions, run_all
 from review_migrator.schemas import CremaReviewPayload, NormalizedReview
 from review_migrator.storage.sqlite_registry import IdempotencyRegistry
+from review_migrator.smartstore.review_images import (
+    collect_smartstore_review_images_from_export,
+    extract_smartstore_review_image_rows,
+    write_smartstore_review_image_rows,
+    write_smartstore_review_status_rows,
+)
 from review_migrator.transform.crema_csv import write_crema_csv
 from review_migrator.transform.crema_payload import build_payloads, load_image_matches, write_payloads
 from review_migrator.utils import read_jsonl, write_csv, write_jsonl
@@ -149,6 +155,54 @@ def command_match_images(args: argparse.Namespace) -> int:
     review_required_path = Path(args.output).with_name(f"{Path(args.output).stem}_review_required.csv")
     write_image_matches(review_required_path, review_required)
     print(f"auto_matches={len(confirmed)} review_required={len(review_required)}")
+    return 0
+
+
+def command_collect_smartstore_images(args: argparse.Namespace) -> int:
+    status_output = args.status_output or str(Path(args.output).with_name(f"{Path(args.output).stem}_status.csv"))
+    collection = collect_smartstore_review_images_from_export(
+        args.input,
+        store_id=args.store_id,
+        sort=args.sort,
+        max_scrolls=args.max_scrolls,
+        wait_after_scroll_ms=args.wait_after_scroll_ms,
+        headless=args.headless,
+        browser_channel=args.browser_channel,
+        browser_user_data_dir=Path(args.browser_user_data_dir) if args.browser_user_data_dir else None,
+        product_limit=args.product_limit,
+        log=print,
+    )
+    write_smartstore_review_image_rows(args.output, collection.rows)
+    write_smartstore_review_status_rows(status_output, collection.status_rows)
+    matched_review_count = len({str(row["naver_review_id"]) for row in collection.rows})
+    print(
+        " ".join(
+            [
+                f"products={collection.product_count}",
+                f"target_reviews={collection.target_review_count}",
+                f"matched_reviews={matched_review_count}",
+                f"image_urls={len(collection.rows)}",
+                f"output={args.output}",
+                f"status_output={status_output}",
+            ]
+        )
+    )
+    return 0
+
+
+def command_parse_smartstore_html(args: argparse.Namespace) -> int:
+    rows = []
+    for input_path in args.input:
+        html = Path(input_path).read_text(encoding=args.encoding, errors="replace")
+        rows.extend(
+            extract_smartstore_review_image_rows(
+                html,
+                naver_product_no=args.product_no or "",
+            )
+        )
+    write_smartstore_review_image_rows(args.output, rows)
+    matched_review_count = len({str(row["naver_review_id"]) for row in rows})
+    print(f"matched_reviews={matched_review_count} image_urls={len(rows)} output={args.output}")
     return 0
 
 
@@ -301,6 +355,7 @@ def command_run_all(args: argparse.Namespace) -> int:
             naver_export_path=Path(args.input),
             product_mapping_path=Path(args.mapping) if args.mapping else None,
             image_dir=Path(args.image_dir) if args.image_dir else None,
+            additional_image_csv_path=Path(args.additional_image_csv) if args.additional_image_csv else None,
             image_base_url=args.image_base_url,
             image_public_dir=Path(args.image_public_dir) if args.image_public_dir else None,
             download_images_from_excel=not args.no_download_images,
@@ -496,6 +551,32 @@ def build_parser() -> argparse.ArgumentParser:
     images.add_argument("--output", required=True)
     images.set_defaults(func=command_match_images)
 
+    collect_images = subparsers.add_parser("collect-smartstore-images")
+    collect_images.add_argument("--input", required=True, help="네이버 리뷰 엑셀 경로")
+    collect_images.add_argument("--output", required=True, help="생성할 additional_review_images.csv 경로")
+    collect_images.add_argument("--status-output", help="리뷰별 수집 상태 CSV 경로")
+    collect_images.add_argument("--store-id", default="opengallery", help="스마트스토어 ID")
+    collect_images.add_argument(
+        "--sort",
+        choices=["latest", "ranking", "score_high", "score_low"],
+        default="latest",
+        help="리뷰 모달 정렬 기준",
+    )
+    collect_images.add_argument("--max-scrolls", type=int, default=80)
+    collect_images.add_argument("--wait-after-scroll-ms", type=int, default=700)
+    collect_images.add_argument("--headless", action=argparse.BooleanOptionalAction, default=False)
+    collect_images.add_argument("--browser-channel", default="chrome", help="chrome, msedge 등. 빈 문자열이면 기본 Chromium")
+    collect_images.add_argument("--browser-user-data-dir", help="스마트스토어 인증 쿠키를 유지할 전용 브라우저 프로필 폴더")
+    collect_images.add_argument("--product-limit", type=int, help="PoC용 상품 수 제한")
+    collect_images.set_defaults(func=command_collect_smartstore_images)
+
+    parse_html = subparsers.add_parser("parse-smartstore-html")
+    parse_html.add_argument("--input", nargs="+", required=True, help="스마트스토어 리뷰 모달 HTML/TXT 파일")
+    parse_html.add_argument("--output", required=True, help="생성할 additional_review_images.csv 경로")
+    parse_html.add_argument("--product-no", help="파일 전체에 적용할 네이버 상품번호")
+    parse_html.add_argument("--encoding", default="utf-8")
+    parse_html.set_defaults(func=command_parse_smartstore_html)
+
     upload = subparsers.add_parser("upload-crema")
     upload.add_argument("--payload", required=True)
     upload.add_argument("--mode", choices=["create", "create-or-update"], default="create-or-update")
@@ -527,6 +608,7 @@ def build_parser() -> argparse.ArgumentParser:
     run_all_parser.add_argument("--input", required=True, help="네이버 리뷰 엑셀 경로")
     run_all_parser.add_argument("--mapping", help="상품 매핑 CSV 경로")
     run_all_parser.add_argument("--image-dir", help="사람이 다운로드한 이미지 폴더")
+    run_all_parser.add_argument("--additional-image-csv", help="스마트스토어 이미지 수집기로 만든 추가 이미지 CSV")
     run_all_parser.add_argument("--image-base-url", help="이미지를 공개 접근할 수 있는 base URL. 없으면 CAFE24_IMAGE_BASE_URL 사용")
     run_all_parser.add_argument("--image-public-dir", help="FTP 대신 로컬/마운트 공개 폴더를 쓸 때만 지정")
     run_all_parser.add_argument("--no-download-images", action="store_true", help="네이버 엑셀 포토/영상 URL 다운로드를 건너뜀")

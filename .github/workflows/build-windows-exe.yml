@@ -5,6 +5,8 @@ on:
   push:
     paths:
       - "review_migrator/**"
+      - "chrome_extensions/**"
+      - "docs/staff_gui_guide.md"
       - "tools/**"
       - "tests/**"
       - "scripts/build_windows_exe.ps1"
@@ -36,12 +38,24 @@ jobs:
         shell: cmd
         run: python -m PyInstaller --noconfirm --clean --onefile --windowed --name ReviewMigratorGUI --collect-submodules openpyxl --collect-submodules pandas --collect-submodules pydantic --collect-submodules dotenv --hidden-import tkinter tools/windows_gui_launcher.py
 
-      - name: Upload Windows EXE
-        uses: actions/upload-artifact@v4
-        with:
-          name: ReviewMigratorGUI-windows
-          path: dist/ReviewMigratorGUI.exe
-
       - name: Smoke test built EXE
         shell: powershell
         run: .\dist\ReviewMigratorGUI.exe --smoke-test
+
+      - name: Package Windows distribution
+        shell: powershell
+        run: |
+          $packageRoot = "dist\ReviewMigratorGUI-windows"
+          New-Item -ItemType Directory -Force -Path $packageRoot | Out-Null
+          Copy-Item "dist\ReviewMigratorGUI.exe" $packageRoot
+          Copy-Item "docs\staff_gui_guide.md" (Join-Path $packageRoot "경영지원팀용_리뷰_이전_도구_사용법.md")
+          New-Item -ItemType Directory -Force -Path (Join-Path $packageRoot "chrome_extensions") | Out-Null
+          Copy-Item "chrome_extensions\smartstore_review_image_collector" `
+            (Join-Path $packageRoot "chrome_extensions\smartstore_review_image_collector") `
+            -Recurse
+
+      - name: Upload Windows package
+        uses: actions/upload-artifact@v4
+        with:
+          name: ReviewMigratorGUI-windows
+          path: dist/ReviewMigratorGUI-windows
